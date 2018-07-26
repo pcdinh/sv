@@ -115,6 +115,30 @@ async def test_connection(request: Request):
                     "created_time": datetime.datetime.utcnow()
                 }
             )
+            rs9 = await connection.execute(
+                "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
+                 VALUES(%(user_id)s, %(first_name)s, %(last_name)s, %(source)s, %(status)s, %(created_time)s) RETURNING user_id",
+                {
+                    "user_id": 2,
+                    "first_name": "Lionen",
+                    "last_name": "Messi",
+                    "source": 1,
+                    "status": 1,
+                    "created_time": datetime.datetime.utcnow()
+                }
+            )
+            rs10, count10 = await connection.insert(
+                "users",
+                {
+                    "user_id": 3,
+                    "first_name": "Lionen",
+                    "last_name": "Messi",
+                    "source": 1,
+                    "status": 1,
+                    "created_time": datetime.datetime.utcnow()
+                },
+                return_fields="user_id, first_name"
+            )
             return JsonResponse(
                 {
                     "rs1": rs1,
@@ -124,7 +148,9 @@ async def test_connection(request: Request):
                     "rs5": rs5,
                     "rs6": rs6,
                     "rs7": rs7,
-                    "rs8": rs8
+                    "rs8": rs8,
+                    "rs9": rs9,
+                    "rs10": {"rs": rs10, "count": count10}
                 }
             )
     except Exception as error:

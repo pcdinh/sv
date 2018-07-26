@@ -176,17 +176,15 @@ class SessionManager:
         except BaseException as e:
             raise e
 
-    def insert(self, table, values, return_id=None, autocommit=True, check_placeholder=False):
-        """
+    async def insert(self, table, values, return_fields=None, check_placeholder=False):
+        """Insert a row into a table
         :param table: Table name
         :param values: A dict of field name and its value
-        :param function_aware: To check if there is any column that is function aware
-        :param return_id: Field name to return
-        :param autocommit: bool
+        :param return_fields: Field name to return
         :param check_placeholder: bool
-        :return: Number of affected rows
+        :return: a tuple (return_dict, affected_rows)
         """
-        self.connect()
+        self.connection._check_open()
         fields = values.keys()
         if check_placeholder is False:
             value_placeholders = ['%%(%s)s' % field for field in fields]  # Created %(field_name)s
@@ -199,11 +197,22 @@ class SessionManager:
                     values.update(values[field].bind_values)
                 else:
                     value_placeholders.append('%%(%s)s' % field)  # Created %(field_name)s
-        if not return_id:
-            q = "INSERT INTO %s (%s) VALUES (%s)" % (table, ','.join(fields), ','.join(value_placeholders))
+        if not return_fields:
+            q = "INSERT INTO %s (%s) VALUES (%s)" % (
+                table, ','.join(fields), ','.join(value_placeholders)
+            )
         else:
-            q = "INSERT INTO %s (%s) VALUES (%s) RETURNING %s" % (table, ','.join(fields), ','.join(value_placeholders), return_id)
-        return self._execute(q, values, autocommit)
+            q = "INSERT INTO %s (%s) VALUES (%s) RETURNING %s" % (
+                table, ','.join(fields), ','.join(value_placeholders), return_fields
+            )
+        query, params = pyformat_to_native(q, values)
+        if return_fields:
+            ret = await self.connection.fetchrow(query, *params)
+            if not ret:
+                return {}, 0
+            return dict(ret), 1
+        _, status, _ = await self.connection._execute(query, params, 0, None, True)
+        return {}, int(status.split()[-1])
 
     def insert_many(self, table, values, return_id=None, autocommit=True, check_placeholder=False):
         self.connect()
