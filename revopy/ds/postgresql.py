@@ -83,7 +83,7 @@ class SessionManager:
         return dict(ret)
 
     async def fetch_column(self, query, params=None):
-        """Fetch all possible values of a single column of rows, returning a list
+        """Fetch all possible values of the first column of rows, returning a list
         :param str query:
         :param dict params:
         :return: list
@@ -94,7 +94,6 @@ class SessionManager:
             ret = await self.connection.fetch(query, *params)
         else:
             ret = await self.connection.fetch(query)
-        ret = await self.cursor.fetch(query, params)
         return [row[0] for row in ret]
 
     async def fetch_value(self, query, params=None):
