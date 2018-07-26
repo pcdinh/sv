@@ -88,12 +88,17 @@ async def test_connection(request: Request):
                             "SELECT user_id FROM users WHERE user_id = %(user_id)s",
                             {"user_id": 1}
                         )
+            rs5 = await connection.fetch_all(
+                            "SELECT user_id FROM users WHERE user_id = %(user_id)s",
+                            {"user_id": 1}
+                        )
             return JsonResponse(
                        {
                            "rs1": rs1,
                            "rs2": rs2,
                            "rs3": str(rs3),
-                           "rs4": rs4
+                           "rs4": rs4,
+                           "rs5": rs5
                        }
                    )
     except Exception as error:

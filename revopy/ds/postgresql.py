@@ -114,13 +114,19 @@ class SessionManager:
 
     async def fetch_all(self, query, params=None):
         """Fetches all (remaining) rows of a query result, returning a list
+        :param str query:
+        :param dict params:
         :return: list
         """
-        return await self.cursor.fetch(query, params)
+        if params:
+            query, params = pyformat_to_native(query, params)
+            ret = await self.connection.fetch(query, *params)
+        else:
+            ret = await self.connection.fetch(query)
+        return [dict(row) for row in ret]
 
     async def fetch_by_page(self, query, page, rows_per_page, params=None):
-        """
-        Fetches all (remaining) rows of a query result, returning a list
+        """Fetches all (remaining) rows of a query result, returning a list
         @raise InvalidArgumentException:
         :return: a tuple (row_count, list of rows in the page)
         """
