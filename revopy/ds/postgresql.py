@@ -38,7 +38,13 @@ class SessionManager:
         self.deferrable = False
 
     async def start(self, transactional, isolation, readonly, deferrable) -> asyncpg.connection.Connection:
-        """Initialize a database session"""
+        """Initialize a database session
+        :param transactional: bool
+        :param isolation: str
+        :param readonly: bool
+        :param deferrable: bool
+        :return asyncpg.connection.Connection
+        """
         if self.connection:
             raise UserWarning("The use of initialize() caused leaked connection")
         self.connection = await self.pool.acquire(timeout=self.timeout)
@@ -48,10 +54,14 @@ class SessionManager:
         return self.connection
 
     async def start_transaction(self):
+        """Start a transaction"""
         self.transaction = await self.connection.transaction()
         await self.transaction.start()
 
     async def close(self, release=True):
+        """Close database session and release the current connection to the pool
+        :param release: bool
+        """
         if release is True:
             await self.pool.release(self.connection)
         self.connection = None
@@ -61,7 +71,7 @@ class SessionManager:
         """Retrieve a single row
         :param query: str
         :param params: dict
-        :return: Null or dict
+        :return: dict
         """
         if params:
             query, params = pyformat_to_native(query, params)
@@ -69,7 +79,7 @@ class SessionManager:
         else:
             ret = await self.connection.fetchrow(query)
         if ret is None:
-            return Null()
+            return {}
         return dict(ret)
 
     async def fetch_column(self, query, params=None):
