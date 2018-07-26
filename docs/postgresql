@@ -1,0 +1,36 @@
+dev0:
+
+Password
+========
+sudo -u postgres psql postgres
+postgres=# \password postgres
+
+You'll see:
+
+Enter new password:
+
+# Switch to postgres user
+sudo su - postgres
+
+
+# Create user
+sudo su - postgres
+psql postgres
+postgres=# CREATE ROLE dbdev1 WITH LOGIN PASSWORD '123456';
+CREATE ROLE
+postgres=# \du
+
+postgres=# CREATE DATABASE sv1;
+postgres=# GRANT ALL PRIVILEGES ON DATABASE sv1 TO dbdev1;
+postgres=# \list
+
+# Grant CREATEDB right
+ALTER ROLE dbdev1 CREATEDB;
+
+# Switch role
+postgres=# \c sv1;
+SET SESSION ROLE dbdev1;
+
+
+# Restart
+sudo /etc/init.d/postgresql restart
