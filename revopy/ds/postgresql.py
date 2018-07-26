@@ -157,7 +157,7 @@ class SessionManager:
 
     async def execute(self, query: str, params: dict=None, timeout: float=None) -> str:
         """Execute a query
-        :return str
+        :return: The number of affected rows
         """
         self.connection._check_open()
         if not params:
@@ -176,32 +176,6 @@ class SessionManager:
         except BaseException as e:
             raise e
 
-    def get_last_insert_id(self):
-        """Gets the inserted ID caused by the previous INSERT ... RETURNING ID statements
-        You must invoke execute() first"""
-        self.connect()
-        try:
-            value = self.cursor.fetchone()
-            if value:
-                return value[0]
-            return None
-        except BaseException as e:
-            raise e
-
-    def get_last_insert_ids(self):
-        """Gets all the inserted IDs caused by the previous multiple INSERT ... RETURNING ID statements
-        You must invoke execute() first"""
-        self.connect()
-        try:
-            return self.cursor.fetchall()
-        except BaseException as e:
-            raise e
-
-    def affected_rows(self):
-        """Get number of affected rows
-        """
-        return self.cursor.rowcount
-
     def insert(self, table, values, return_id=None, autocommit=True, check_placeholder=False):
         """
         :param table: Table name
@@ -210,7 +184,7 @@ class SessionManager:
         :param return_id: Field name to return
         :param autocommit: bool
         :param check_placeholder: bool
-        :return Number of affected rows
+        :return: Number of affected rows
         """
         self.connect()
         fields = values.keys()
