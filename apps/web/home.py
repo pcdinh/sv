@@ -1,3 +1,4 @@
+from revopy.ds import is_null
 from start_app import app, managed, Config
 from vibora import Request, Response
 from vibora import Route
@@ -96,7 +97,7 @@ async def test_connection(request: Request):
                        {
                            "rs1": rs1,
                            "rs2": rs2,
-                           "rs3": str(rs3),
+                           "rs3": str(rs3) if is_null(rs3) else rs3,
                            "rs4": rs4,
                            "rs5": rs5
                        }
