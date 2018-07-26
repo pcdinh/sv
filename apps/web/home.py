@@ -1,8 +1,8 @@
-from revopy.ds import is_null
-from start_app import app, managed, Config
-from vibora import Request, Response
 from vibora import Route
+from vibora import Request, Response
+from start_app import app, managed, Config
 from revopy.helpers.response_utils import JsonResponse, WebResponse
+from revopy.ds import is_null
 
 
 @app.route('/')
@@ -10,12 +10,12 @@ async def home(request: Request, config: Config):
     config = request.app.components.get(Config)
 
     return JsonResponse(
-               {
-                   'hello': 'world',
-                   'config': config.POSTGRESQL_DSN,
-                   'pg_pool': hasattr(request.app, "pg")
-               }
-           )
+        {
+            'hello': 'world',
+            'config': config.POSTGRESQL_DSN,
+            'pg_pool': hasattr(request.app, "pg")
+        }
+    )
 
 
 @app.route('/home')
@@ -54,16 +54,19 @@ async def test_connection(request: Request):
             async with connection.transaction():
                 # Run the query
                 await connection.execute(
-                          '''INSERT INTO users(user_id, first_name, last_name, source, status, created_time) 
-                             VALUES($1, $2, $3, $4, $5, $6)''',
-                          1, "Lionen", "Messi", 1, 1, datetime.datetime.utcnow()
-                      )
+                    '''INSERT INTO users(user_id, first_name, last_name, source, status, created_time) 
+                       VALUES($1, $2, $3, $4, $5, $6)''',
+                    1, "Lionen", "Messi", 1, 1, datetime.datetime.utcnow()
+                )
                 result_01 = await connection.fetchrow('SELECT user_id, first_name FROM users')
                 result_02 = await connection.fetchrow('SELECT user_id, first_name FROM users WHERE user_id = 10')
                 result_03 = await connection.fetch('SELECT user_id, first_name FROM users WHERE user_id = 10')
                 await connection.execute('''DELETE FROM users WHERE user_id = $1''', 1)
                 config = request.app.components.get(Config)
-                return WebResponse('Result {}. Keys: {}, Values: {}, Empty: {}, DEBUG: {}'.format(result_01, result_01.keys(), result_01.values(), result_03, config.DEBUG))
+                return WebResponse(
+                    'Result {}. Keys: {}, Values: {}, Empty: {}, DEBUG: {}'.format(result_01, result_01.keys(),
+                                                                                   result_01.values(), result_03,
+                                                                                   config.DEBUG))
     except Exception as error:
         return WebResponse(str(error), status_code=500)
 
@@ -78,30 +81,52 @@ async def test_connection(request: Request):
             ''':type : revopy.ds.postgresql.SessionManager'''
             rs1 = await connection.fetch_one("SELECT user_id, first_name FROM users")
             rs2 = await connection.fetch_one(
-                            "SELECT user_id, first_name FROM users WHERE user_id = %(user_id)s",
-                            {"user_id": 1}
-                        )
+                "SELECT user_id, first_name FROM users WHERE user_id = %(user_id)s",
+                {"user_id": 1}
+            )
             rs3 = await connection.fetch_value(
-                            "SELECT user_id FROM users WHERE user_id = %(user_id)s",
-                            {"user_id": 1}
-                        )
+                "SELECT user_id FROM users WHERE user_id = %(user_id)s",
+                {"user_id": 1}
+            )
             rs4 = await connection.fetch_column(
-                            "SELECT user_id FROM users WHERE user_id = %(user_id)s",
-                            {"user_id": 1}
-                        )
+                "SELECT user_id FROM users WHERE user_id = %(user_id)s",
+                {"user_id": 1}
+            )
             rs5 = await connection.fetch_all(
-                            "SELECT user_id FROM users WHERE user_id = %(user_id)s",
-                            {"user_id": 1}
-                        )
+                "SELECT user_id FROM users WHERE user_id = %(user_id)s",
+                {"user_id": 1}
+            )
+            rs6 = await connection.execute(
+                "SELECT user_id FROM users WHERE user_id = %(user_id)s",
+                {"user_id": 1}
+            )
+            rs7 = await connection.execute(
+                "SELECT user_id FROM users"
+            )
+            rs8 = await connection.execute(
+                "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
+                 VALUES(%(user_id)s, %(first_name)s, %(last_name)s, %(source)s, %(status)s, %(created_time)s)",
+                {
+                    "user_id": 1,
+                    "first_name": "Lionen",
+                    "last_name": "Messi",
+                    "source": 1,
+                    "status": 1,
+                    "created_time": datetime.datetime.utcnow()
+                }
+            )
             return JsonResponse(
-                       {
-                           "rs1": rs1,
-                           "rs2": rs2,
-                           "rs3": str(rs3) if is_null(rs3) else rs3,
-                           "rs4": rs4,
-                           "rs5": rs5
-                       }
-                   )
+                {
+                    "rs1": rs1,
+                    "rs2": rs2,
+                    "rs3": str(rs3) if is_null(rs3) else rs3,
+                    "rs4": rs4,
+                    "rs5": rs5,
+                    "rs6": rs6,
+                    "rs7": rs7,
+                    "rs8": rs8
+                }
+            )
     except Exception as error:
         exc_type, exc_value, exc_tb = sys.exc_info()
         tbe = traceback.TracebackException(
@@ -110,5 +135,5 @@ async def test_connection(request: Request):
         e1 = ''.join(tbe.format())
         e2 = ''.join(tbe.format_exception_only())
         return WebResponse(
-                   str(error) + ":" + type(error).__name__ + ">> \n" + str(e1) + "\n\n" + str(e2), status_code=500
-               )
+            str(error) + ":" + type(error).__name__ + ">> \n" + str(e1) + "\n\n" + str(e2), status_code=500
+        )

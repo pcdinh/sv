@@ -155,21 +155,19 @@ class SessionManager:
         self.cursor.execute(query + ' LIMIT %(rows_per_page)s OFFSET %(offset)s', params)
         return row_count, self.cursor.fetchall()
 
-    def execute(self, query, params=None):
+    async def execute(self, query: str, params: dict=None, timeout: float=None) -> str:
+        """Execute a query
+        :return str
         """
-        Executes the query
-        :return None
-        """
-        self.connect()
-        try:
-            if self.debug_queries:
-                logger.debug(self.generate_query(query, params))
-            return self.cursor.execute(query, params)
-        except BaseException as e:
-            if self.is_write_query(query):
-                # @todo: support SAVEPOINT
-                self.end_transaction(commit=False)  # roll back the current transaction
-            raise e
+        self.connection._check_open()
+        if not params:
+            # status can be: SELECT 0
+            #                INSERT 0 1
+            status = await self.connection._protocol.query(query, timeout)
+            return int(status.split()[-1])
+        query, params = pyformat_to_native(query, params)
+        _, status, _ = await self.connection._execute(query, params, 0, timeout, True)
+        return int(status.split()[-1])
 
     def get_last_insert_values(self):
         self.connect()
