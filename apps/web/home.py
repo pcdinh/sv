@@ -80,7 +80,12 @@ async def test_connection(request: Request):
                             "SELECT user_id, first_name FROM users WHERE user_id = %(user_id)s",
                             {"user_id": 1}
                         )
-            return WebResponse('Result {}. Type: {}'.format(rs1, type(rs1)))
+            return JsonResponse(
+                       {
+                           "rs1": rs1,
+                           "rs2": rs2
+                       }
+                   )
     except Exception as error:
         exc_type, exc_value, exc_tb = sys.exc_info()
         tbe = traceback.TracebackException(

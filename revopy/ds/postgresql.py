@@ -89,6 +89,11 @@ class SessionManager:
         :return: list
                  An empty list is returned if there is no match rows
         """
+        if params:
+            query, params = pyformat_to_native(query, params)
+            ret = await self.connection.fetch(query, *params)
+        else:
+            ret = await self.connection.fetch(query)
         ret = await self.cursor.fetch(query, params)
         return [row[0] for row in ret]
 
