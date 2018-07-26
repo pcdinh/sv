@@ -12,7 +12,7 @@ async def home(request: Request, config: Config):
                {
                    'hello': 'world',
                    'config': config.POSTGRESQL_DSN,
-                   'pg_pool': hasattr(request.app, "pg_pool")
+                   'pg_pool': hasattr(request.app, "pg")
                }
            )
 
@@ -31,7 +31,7 @@ async def test_connection(request: Request):
     try:
         # Take a connection from the pool.
         ''':type : asyncpg.connection.Connection'''
-        async with request.app.pg_pool.acquire() as connection:
+        async with request.app.pool.acquire() as connection:
             # Open a transaction.
             async with connection.transaction():
                 # Run the query
