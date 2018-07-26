@@ -1,14 +1,19 @@
-class Null(object):
+class Null:
     """Used in `~revopy.ds` to make difference with
 
     + No such field exists: Null() (no record)
     + Field contains nothing: None (null field in database table)
     """
-    pass
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        mod = self.__class__.__module__
+        return '<{}.{} {:#x}>'.format(mod, self.__class__.__name__, id(self))
 
 
-class Placeholder(object):
-    """When a Placeholder is used in a binded context,
+class Placeholder:
+    """When a Placeholder is used in a bind context,
     it will not used as string placeholder.
 
     E.x: Not Placeholder: (see insert())

@@ -80,10 +80,15 @@ async def test_connection(request: Request):
                             "SELECT user_id, first_name FROM users WHERE user_id = %(user_id)s",
                             {"user_id": 1}
                         )
+            rs3 = await connection.fetch_value(
+                            "SELECT user_id FROM users WHERE user_id = %(user_id)s",
+                            {"user_id": 1}
+                        )
             return JsonResponse(
                        {
                            "rs1": rs1,
-                           "rs2": rs2
+                           "rs2": rs2,
+                           "rs3": str(rs3)
                        }
                    )
     except Exception as error:

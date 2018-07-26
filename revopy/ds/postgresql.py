@@ -84,8 +84,8 @@ class SessionManager:
 
     async def fetch_column(self, query, params=None):
         """Fetch all possible values of a single column of rows, returning a list
-        :param query: str
-        :param params: dict
+        :param str query:
+        :param dict params:
         :return: list
                  An empty list is returned if there is no match rows
         """
@@ -98,23 +98,20 @@ class SessionManager:
         return [row[0] for row in ret]
 
     async def fetch_value(self, query, params=None):
-        """Retrieve a single value of the first column on the first row
-        :return: None if there is no matching row,
-                 or an object of string or integer or boolean or a data.Null object
+        """Retrieve the value of the first column on the first row
+        :param str query:
+        :param dict params:
+        :return: Null if there is no matching row,
+                 int|str|None if there is a matching row
         """
-        row = self.cursor.fetchval(query, params)
-        if not row:
-            return None
-        cell_value = None
-        if self.row_type == 'dict':
-            for value in row.itervalues():
-                cell_value = value
-                break
+        if params:
+            query, params = pyformat_to_native(query, params)
+            ret = await self.connection.fetchval(query, *params)
         else:
-            cell_value = row[0]
-        if cell_value is None:
+            ret = await self.connection.fetchval(query)
+        if ret is None:
             return Null()
-        return cell_value
+        return ret
 
     async def fetch_all(self, query, params=None):
         """Fetches all (remaining) rows of a query result, returning a list
