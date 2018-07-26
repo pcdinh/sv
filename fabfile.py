@@ -78,7 +78,7 @@ def synchronize_code(context):
     remote_base_path = "/home/pcdinh/code"
     ssh_identity_file_path = convert_to_posix_path(os.path.normpath("".join(context.ssh_config["identityfile"])))
     if sys.platform == "win32":
-        rsync_cmd = r"{}  -pthrvz --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r --rsh='{} -i {} -p 22 ' {} {}@{}:{}"
+        rsync_cmd = r"{} -pthrvz --exclude='.git/' --exclude='.idea/' --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r --rsh='{} -i {} -p 22 ' {} {}@{}:{}"
         context.local(
             rsync_cmd.format(
                 rsync_path,
