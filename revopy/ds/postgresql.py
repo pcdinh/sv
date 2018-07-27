@@ -390,17 +390,3 @@ class SessionManager:
         q = "DELETE FROM %s WHERE %s RETURNING %s" % (table, where_clause, return_field)
         self._execute(q, where, autocommit)
         return self.cursor.fetchall()
-
-    def get_columns(self, table):
-        """Return all columns as a list
-        """
-        self.connect()
-        self.cursor.execute('SELECT * FROM %s WHERE 1=0' % table)
-        return [rec[0] for rec in self.cursor.description]
-
-    def get_last_query(self):
-        self.connect()
-        return self.cursor.query
-
-    def generate_query(self, query, params):
-        return utils._mogrify(self.connection, query, params)
