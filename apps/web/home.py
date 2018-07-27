@@ -230,6 +230,28 @@ async def test_connection(request: Request):
                     "user_id": 2
                 }
             )
+            rs23, count23 = await connection.insert(
+                "users",
+                {
+                    "user_id": 3,
+                    "first_name": "F3",
+                    "last_name": "L3",
+                    "source": 1,
+                    "status": 1,
+                    "created_time": datetime.datetime.utcnow()
+                },
+                return_fields="user_id, first_name"
+            )
+            rs24 = await connection.delete_and_return(
+                "users",
+                {
+                    "user_id": 3
+                }
+            )
+            rs25 = await connection.fetch_all(
+                "SELECT user_id FROM users WHERE user_id = %(user_id)s",
+                {"user_id": 3}
+            )
             return JsonResponse(
                 {
                     "rs1": rs1,
@@ -253,7 +275,10 @@ async def test_connection(request: Request):
                     "rs19": {"rs": rs19},
                     "rs20": rs20,
                     "rs21": {"rs": rs21, "count": count21},
-                    "rs22": rs22
+                    "rs22": rs22,
+                    "rs23": rs23,
+                    "rs24": rs24,
+                    "rs25": rs25
                 }
             )
     except Exception as error:

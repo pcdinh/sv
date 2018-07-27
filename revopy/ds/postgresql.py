@@ -238,7 +238,7 @@ class SessionManager:
         return {}, int(status.split()[-1])
 
     def insert_many(self, table, values, return_id=None, autocommit=True, check_placeholder=False):
-        self.connect()
+        self.connection._check_open()
         q = self._generate_bulk_insert_query(table, values, return_id, check_placeholder)
         execute_many = False if return_id or check_placeholder is True else True
         return self._execute(q, values, autocommit, execute_many=execute_many)
@@ -378,9 +378,11 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return int(status.split()[-1])
 
-    def delete_and_return(self, table, where, return_field='*', autocommit=True):
+    def delete_and_return(self, table, where, return_field='*'):
         """Delete and return deleted rows
         :param str table: Table name
+        :param str where:
+        :param str return_field:
         :return List of deleted rows
         """
         if not where:
@@ -388,5 +390,4 @@ class SessionManager:
         where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field)
                                      for field, v in where.items()])
         q = "DELETE FROM %s WHERE %s RETURNING %s" % (table, where_clause, return_field)
-        self._execute(q, where, autocommit)
-        return self.cursor.fetchall()
+        return self.execute_and_fetch(q, where)
