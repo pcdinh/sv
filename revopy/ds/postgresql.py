@@ -355,32 +355,38 @@ class SessionManager:
 
     async def delete_all(self, table):
         """Delete all rows from a table
-        :param str table:
+        :param str table: Table name
         :return The number of deleted rows
         """
         query = "DELETE FROM {}".format(table)
         status = await self.connection._protocol.query(query, None)
         return int(status.split()[-1])
 
-    def delete(self, table, where):
-        """Deletes all rows that match the provided condition
+    async def delete(self, table, where):
+        """Delete all rows that match the provided condition
         :param str table: Table name
-        :param dict where: A dict (field_name: value) indicates equality clause (=), (field_name: tuple) indicates IN clause
+        :param dict where: A dict (field_name: value) indicates equality clause (=),
+                          (field_name: tuple) indicates IN clause
         :return The number of deleted rows
         """
         if not where:
             raise UserWarning('Database delete() without WHERE clause. Use delete_all() instead')
-        where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field) for field, v in where.items()])
-        q = "DELETE FROM %s WHERE %s" % (table, where_clause)
-        self._execute(q, where, autocommit)
-        return self.cursor.rowcount
+        where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field)
+                                     for field, v in where.items()])
+        query = "DELETE FROM %s WHERE %s" % (table, where_clause)
+        query, params = pyformat_to_native(query, where)
+        _, status, _ = await self.connection._execute(query, params, 0, None, True)
+        return int(status.split()[-1])
 
     def delete_and_return(self, table, where, return_field='*', autocommit=True):
         """Delete and return deleted rows
+        :param str table: Table name
+        :return List of deleted rows
         """
         if not where:
             raise UserWarning('Method delete_and_return() without WHERE clause. Use delete_all() instead')
-        where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field) for field, v in where.items()])
+        where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field)
+                                     for field, v in where.items()])
         q = "DELETE FROM %s WHERE %s RETURNING %s" % (table, where_clause, return_field)
         self._execute(q, where, autocommit)
         return self.cursor.fetchall()
