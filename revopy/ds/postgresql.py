@@ -126,23 +126,26 @@ class SessionManager:
         return [dict(row) for row in ret]
 
     async def fetch_by_page(self, query, page, rows_per_page, params=None):
-        """Fetches all (remaining) rows of a query result, returning a list
-        @raise InvalidArgumentException:
-        :return: a tuple (row_count, list of rows in the page)
+        """Fetch all (remaining) rows of a query result, returning a tuple (rows, total)
+        :param str query:
+        :param int page:
+        :param int rows_per_page:
+        :param dict params:
+        :raise UserWarning:
+        :return: a tuple (list of rows in the page, row_count)
         """
         try:
             q = 'SELECT COUNT(1) AS row_count ' + query[query.index('FROM'):]
         except ValueError:
             raise UserWarning('Missing FROM in the provided query')
-        self.connect()
-        self.cursor.execute(q, params)
-        row = self.cursor.fetchone()
-        if self.row_type == 'dict':
-            row_count = row['row_count']
+        import sys
+        if params:
+            ret = await self.execute_and_fetch(q, params)
         else:
-            row_count = row[0]
+            ret = await self.execute_and_fetch(q, None)
+        row_count = ret[0]['row_count']
         if row_count == 0:
-            return 0, []
+            return [], 0
         max_pages = math.ceil(float(row_count) / rows_per_page)
         # Check the page value just in case someone is trying to input an arbitrary value
         if page > max_pages or page <= 0:
@@ -151,12 +154,19 @@ class SessionManager:
             params = {}
         # Calculate offset
         offset = rows_per_page * (page - 1)
-        params.update({'rows_per_page': rows_per_page, 'offset': offset})
-        self.cursor.execute(query + ' LIMIT %(rows_per_page)s OFFSET %(offset)s', params)
-        return row_count, self.cursor.fetchall()
+        query = query + ' LIMIT %(rows_per_page)s OFFSET %(offset)s'
+        if params:
+            params.update({'rows_per_page': rows_per_page, 'offset': offset})
+            ret = await self.execute_and_fetch(query, params)
+        else:
+            ret = await self.execute_and_fetch(query, None)
+        return ret, row_count
 
     async def execute(self, query: str, params: dict=None, timeout: float=None) -> str:
         """Execute a query
+        :param str query:
+        :param dict params:
+        :param float timeout:
         :return: The number of affected rows
         """
         self.connection._check_open()

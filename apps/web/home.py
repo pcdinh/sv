@@ -2,6 +2,7 @@ from vibora import Route
 from vibora import Request, Response
 
 from revopy.ds.postgresql import SessionManager
+from revopy.helpers.debug_utils import get_exception_details
 from start_app import app, managed, Config
 from revopy.helpers.response_utils import JsonResponse, WebResponse
 from revopy.ds import is_null
@@ -170,6 +171,13 @@ async def test_connection(request: Request):
                     "created_time": datetime.datetime.utcnow()
                 }
             )
+            rs14 = await connection.fetch_by_page(
+                "SELECT user_id FROM users WHERE user_id = %(user_id)s",
+                1, 2,
+                params={
+                    "user_id": 5
+                }
+            )
             return JsonResponse(
                 {
                     "rs1": rs1,
@@ -184,7 +192,8 @@ async def test_connection(request: Request):
                     "rs10": {"rs": rs10, "count": count10},
                     "rs11": {"rs": rs11, "count": count11},
                     "rs12": {"rs": rs12},
-                    "rs13": {"rs": rs13}
+                    "rs13": {"rs": rs13},
+                    "rs14": {"rs": rs14}
                 }
             )
     except Exception as error:
@@ -194,6 +203,11 @@ async def test_connection(request: Request):
         )
         e1 = ''.join(tbe.format())
         e2 = ''.join(tbe.format_exception_only())
+        try:
+            e3 = get_exception_details()
+        except BaseException as e:
+            return WebResponse(str(e), status_code=500)
         return WebResponse(
-            str(error) + ":" + type(error).__name__ + ">> \n" + str(e1) + "\n\n" + str(e2), status_code=500
+            str(error) + ":" + type(error).__name__ + ">> \n" + str(e1) + "\n\n" + str(e2) + "\n\n" + e3,
+            status_code=500
         )
