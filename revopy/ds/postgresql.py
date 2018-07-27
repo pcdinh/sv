@@ -12,17 +12,52 @@ def pyformat_to_native(query: str, params: dict):
     E.x: SELECT * FROM users WHERE user_id = %(user_id)s AND status = %(status)s AND country = %(country)s
          will be converted to
          SELECT * FROM users WHERE user_id = $1 AND status = $2 AND country = $3
-    :param query: str
-    :param: params: dict
+    :param str query:
+    :param dict params:
             A mapping between field name and its value. E.x: {"user_id": 1, "status": 3, "country": "US"}
     """
     field_values = []
     counter = 1
     new_query = query
     for field_name, value in params.items():
-        new_query = new_query.replace("".join(["%(", field_name, ")s"]), f"${counter}")
+        new_query = new_query.replace("".join(["%(", field_name, ")s"]), "$%s" % counter)
         field_values.append(value)
         counter += 1
+    return new_query, field_values
+
+
+def pyformat_in_list_to_native(query: str, params: list):
+    """Convert SQL query formatted in pyformat to PostgreSQL native format
+    E.x: INSERT INTO users (user_id, first_name) VALUES (%(user_id)s, %(first_name)s)
+         [
+           {'user_id': 1, 'first_name': 'A1'}, {'user_id': 2, 'first_name': 'A2'}
+         ]
+         will be converted to
+         INSERT INTO users (user_id, first_name) VALUES ($1, $2)
+         [
+           (1, 'A1'), (2, 'A2')
+         ]
+    :param str query:
+    :param list params:
+            A list of mapping between field name and its value. E.x: [{"user_id": 1, "status": 3, "country": "US"}]
+    :return: a tuple (str, list[dict])
+    """
+    field_values = []
+    counter = 1
+    new_query = query
+    data = params[:]  # copy it to avoid pass-by-reference
+    first_data_item = data.pop(0)
+    field_value_per_set = []
+    for field_name, value in first_data_item.items():
+        new_query = new_query.replace("".join(["%(", field_name, ")s"]), "$%s" % counter)
+        field_value_per_set.append(value)
+        counter += 1
+    field_values.append(field_value_per_set)
+    for item in data:
+        field_value_per_set = []
+        for field_name, value in item.items():
+            field_value_per_set.append(value)
+        field_values.append(field_value_per_set)
     return new_query, field_values
 
 
@@ -39,10 +74,10 @@ class SessionManager:
 
     async def start(self, transactional, isolation, readonly, deferrable) -> asyncpg.connection.Connection:
         """Initialize a database session
-        :param transactional: bool
-        :param isolation: str
-        :param readonly: bool
-        :param deferrable: bool
+        :param bool transactional:
+        :param str isolation:
+        :param bool readonly:
+        :param bool deferrable:
         :return asyncpg.connection.Connection
         """
         if self.connection:
@@ -60,7 +95,7 @@ class SessionManager:
 
     async def close(self, release=True):
         """Close database session and release the current connection to the pool
-        :param release: bool
+        :param bool release:
         """
         if release is True:
             await self.pool.release(self.connection)
@@ -69,8 +104,8 @@ class SessionManager:
 
     async def fetch_one(self, query, params=None):
         """Retrieve a single row
-        :param query: str
-        :param params: dict
+        :param str query:
+        :param dict params:
         :return: dict
         """
         if params:
@@ -178,6 +213,19 @@ class SessionManager:
         query, params = pyformat_to_native(query, params)
         _, status, _ = await self.connection._execute(query, params, 0, timeout, True)
         return int(status.split()[-1])
+
+    async def execute_many(self, query: str, params: list, timeout: float=None):
+        """Sequentially perform a query against a list of data
+        :param str query:
+        :param dict params:
+        :param float timeout:
+        :return: The number of affected rows
+        """
+        if not params or not isinstance(params, list):
+            raise UserWarning('execute_many() requires a list of data')
+        self.connection._check_open()
+        query, params = pyformat_in_list_to_native(query, params)
+        return await self.connection._executemany(query, params, timeout)
 
     async def execute_and_fetch(self, query, params=None, timeout=None, return_status=False):
         """Execute a query and get returned data

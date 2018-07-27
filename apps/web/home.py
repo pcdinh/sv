@@ -252,6 +252,36 @@ async def test_connection(request: Request):
                 "SELECT user_id FROM users WHERE user_id = %(user_id)s",
                 {"user_id": 3}
             )
+            rs26 = await connection.execute_many(
+                "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
+                 VALUES(%(user_id)s, %(first_name)s, %(last_name)s, %(source)s, %(status)s, %(created_time)s)",
+                [
+                    {
+                        "user_id": 3,
+                        "first_name": "F3",
+                        "last_name": "L3",
+                        "source": 1,
+                        "status": 1,
+                        "created_time": datetime.datetime.utcnow()
+                    },
+                    {
+                        "user_id": 4,
+                        "first_name": "F4",
+                        "last_name": "L4",
+                        "source": 1,
+                        "status": 1,
+                        "created_time": datetime.datetime.utcnow()
+                    }
+                ]
+            )
+            rs27 = await connection.fetch_all(
+                "SELECT user_id FROM users WHERE user_id = ANY(%(user_id)s)",
+                {"user_id": [3, 4]}
+            )
+            rs28 = await connection.fetch_all(
+                "SELECT user_id FROM users WHERE first_name = ANY(%(first_name)s)",
+                {"first_name": ["F4", "F5"]}
+            )
             return JsonResponse(
                 {
                     "rs1": rs1,
@@ -278,7 +308,10 @@ async def test_connection(request: Request):
                     "rs22": rs22,
                     "rs23": rs23,
                     "rs24": rs24,
-                    "rs25": rs25
+                    "rs25": rs25,
+                    "rs26": rs26,
+                    "rs27": rs27,
+                    "rs28": rs28
                 }
             )
     except Exception as error:
