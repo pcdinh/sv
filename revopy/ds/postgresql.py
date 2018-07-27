@@ -327,12 +327,12 @@ class SessionManager:
         return self._execute(q, values, autocommit)
 
     def update(self, table, values, where, autocommit=True):
-        '''
-        The method returns number of updated rows
+        """Update certain rows in a table
         :param table: Table name
         :param values: A dict (field_name: value)
         :param where: A dict (field_name: value)
-        '''
+        :return The number of affected rows
+        """
         fields = values.keys()
         # field_name = %(field_name_v)s (avoid conflicts with WHERE values)
         update_fields = ', '.join(['%s = %%(%s_v)s' % (field, field) for field in fields])
