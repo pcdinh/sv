@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 class Null:
     """Used in `~revopy.ds` to make difference with
 
