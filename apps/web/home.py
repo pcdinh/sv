@@ -199,6 +199,19 @@ async def test_connection(request: Request):
                 {"user_id": 1}
             )
             rs18 = await connection.delete_all("users")
+            rs19, count19 = await connection.insert(
+                "users",
+                {
+                    "user_id": 1,
+                    "first_name": "F1",
+                    "last_name": "L1",
+                    "source": 1,
+                    "status": 1,
+                    "created_time": datetime.datetime.utcnow()
+                },
+                return_fields="user_id, first_name"
+            )
+            rs20 = await connection.delete_all("users")
             return JsonResponse(
                 {
                     "rs1": rs1,
@@ -218,7 +231,9 @@ async def test_connection(request: Request):
                     "rs15": {"rs": rs15},
                     "rs16": {"rs": rs16},
                     "rs17": {"rs": rs17},
-                    "rs18": {"rs": rs18}
+                    "rs18": {"rs": rs18},
+                    "rs19": {"rs": rs19},
+                    "rs20": {"rs": rs20}
                 }
             )
     except Exception as error:
