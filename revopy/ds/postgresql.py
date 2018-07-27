@@ -319,12 +319,18 @@ class SessionManager:
             return "INSERT INTO %s (%s) VALUES %s" % (table, ','.join(fields), ','.join(all_rows))
         return "INSERT INTO %s (%s) VALUES %s RETURNING %s" % (table, ','.join(fields), ','.join(all_rows), return_id)
 
-    def update_all(self, table, values, autocommit=True):
-        self.connect()
+    async def update_all(self, table, values):
+        """Update all rows in a table
+        :param table: Table name
+        :param values: A dict (field_name: value)
+        :return: The number of affected rows
+        """
         fields = values.keys()
-        update_fields = ', '.join(['%s = %%(%s)s'] % ((field, field) for field in fields))
-        q = "UPDATE %s SET %s" % (table, update_fields)
-        return self._execute(q, values, autocommit)
+        update_fields = ', '.join([f'{field} = %({field})s' for field in fields])
+        q = f"UPDATE {table} SET {update_fields}"
+        query, params = pyformat_to_native(q, values)
+        _, status, _ = await self.connection._execute(query, params, 0, None, True)
+        return int(status.split()[-1])
 
     async def update(self, table, values, where):
         """Update certain rows in a table

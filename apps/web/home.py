@@ -187,6 +187,16 @@ async def test_connection(request: Request):
                     "user_id": 5
                 }
             )
+            rs16 = await connection.update_all(
+                "users",
+                {
+                    "first_name": "UpdatedName2"
+                }
+            )
+            rs17 = await connection.fetch_all(
+                "SELECT user_id FROM users WHERE user_id = %(user_id)s",
+                {"user_id": 1}
+            )
             return JsonResponse(
                 {
                     "rs1": rs1,
@@ -203,7 +213,9 @@ async def test_connection(request: Request):
                     "rs12": {"rs": rs12},
                     "rs13": {"rs": rs13},
                     "rs14": {"rs": rs14},
-                    "rs15": {"rs": rs15}
+                    "rs15": {"rs": rs15},
+                    "rs16": {"rs": rs16},
+                    "rs17": {"rs": rs17}
                 }
             )
     except Exception as error:
