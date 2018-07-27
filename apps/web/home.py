@@ -198,6 +198,7 @@ async def test_connection(request: Request):
                 "SELECT user_id FROM users WHERE user_id = %(user_id)s",
                 {"user_id": 1}
             )
+            rs18 = await connection.delete_all("users")
             return JsonResponse(
                 {
                     "rs1": rs1,
@@ -216,7 +217,8 @@ async def test_connection(request: Request):
                     "rs14": {"rs": rs14},
                     "rs15": {"rs": rs15},
                     "rs16": {"rs": rs16},
-                    "rs17": {"rs": rs17}
+                    "rs17": {"rs": rs17},
+                    "rs18": {"rs": rs18}
                 }
             )
     except Exception as error:

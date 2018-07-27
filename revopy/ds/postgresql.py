@@ -353,14 +353,14 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return int(status.split()[-1])
 
-    def delete_all(self, table, autocommit=True):
+    async def delete_all(self, table):
         """Delete all rows from a table
+        :param str table:
         :return The number of deleted rows
         """
-        self.connect()
-        query = "DELETE FROM %s" % table
-        self._execute(query, None, autocommit)
-        return self.cursor.rowcount
+        query = "DELETE FROM {}".format(table)
+        status = await self.connection._protocol.query(query, None)
+        return int(status.split()[-1])
 
     def delete(self, table, where):
         """Deletes all rows that match the provided condition
