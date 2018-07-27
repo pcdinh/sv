@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from vibora import Vibora
 from vibora.hooks import Events
 from asyncpg import exceptions

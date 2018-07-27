@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import rapidjson
 from vibora.responses import Response
 

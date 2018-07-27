@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from vibora import Route
 from vibora import Request, Response
 
