@@ -169,12 +169,25 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, timeout, True)
         return int(status.split()[-1])
 
-    def get_last_insert_values(self):
-        self.connect()
-        try:
-            return self.cursor.fetchone()
-        except BaseException as e:
-            raise e
+    async def execute_and_fetch(self, query, params=None, timeout=None, return_status=False):
+        """Execute a query and get returned data
+        :param str query:
+        :param dict params:
+        :param int timeout:
+        :param bool return_status:
+        :return: a list of dictionaries
+        """
+        if params:
+            query, params = pyformat_to_native(query, params)
+        with self.connection._stmt_exclusive_section:
+            executor = lambda stmt, timeout: self.connection._protocol.bind_execute(
+                stmt, params, '', 0, return_status, timeout
+            )
+        timeout = self.connection._protocol._get_timeout(timeout)
+        # type : result: list(asyncpg.Record)
+        # type : _stmt: asyncpg.protocol.protocol.PreparedStatementState
+        result, _stmt = await self.connection._do_execute(query, executor, timeout)
+        return [dict(item) for item in result]
 
     async def insert(self, table, values, return_fields=None, check_placeholder=False):
         """Insert a row into a table

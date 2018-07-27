@@ -1,5 +1,7 @@
 from vibora import Route
 from vibora import Request, Response
+
+from revopy.ds.postgresql import SessionManager
 from start_app import app, managed, Config
 from revopy.helpers.response_utils import JsonResponse, WebResponse
 from revopy.ds import is_null
@@ -142,9 +144,27 @@ async def test_connection(request: Request):
             rs11, count11 = await connection.insert(
                 "users",
                 {
-                    "user_id": 3,
+                    "user_id": 5,
                     "first_name": "Lionen",
                     "last_name": "Messi",
+                    "source": 1,
+                    "status": 1,
+                    "created_time": datetime.datetime.utcnow()
+                }
+            )
+            rs12 = await connection.execute_and_fetch(
+                "SELECT user_id FROM users WHERE user_id = %(user_id)s",
+                {
+                    "user_id": 5
+                }
+            )
+            rs13 = await connection.execute_and_fetch(
+                "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
+                 VALUES(%(user_id)s, %(first_name)s, %(last_name)s, %(source)s, %(status)s, %(created_time)s) RETURNING user_id",
+                {
+                    "user_id": 6,
+                    "first_name": "Lionen6",
+                    "last_name": "Messi6",
                     "source": 1,
                     "status": 1,
                     "created_time": datetime.datetime.utcnow()
@@ -162,7 +182,9 @@ async def test_connection(request: Request):
                     "rs8": rs8,
                     "rs9": rs9,
                     "rs10": {"rs": rs10, "count": count10},
-                    "rs11": {"rs": rs11, "count": count11}
+                    "rs11": {"rs": rs11, "count": count11},
+                    "rs12": {"rs": rs12},
+                    "rs13": {"rs": rs13}
                 }
             )
     except Exception as error:
