@@ -178,6 +178,15 @@ async def test_connection(request: Request):
                     "user_id": 5
                 }
             )
+            rs15 = await connection.update(
+                "users",
+                {
+                    "first_name": "UpdatedName"
+                },
+                {
+                    "user_id": 5
+                }
+            )
             return JsonResponse(
                 {
                     "rs1": rs1,
@@ -193,7 +202,8 @@ async def test_connection(request: Request):
                     "rs11": {"rs": rs11, "count": count11},
                     "rs12": {"rs": rs12},
                     "rs13": {"rs": rs13},
-                    "rs14": {"rs": rs14}
+                    "rs14": {"rs": rs14},
+                    "rs15": {"rs": rs15}
                 }
             )
     except Exception as error:

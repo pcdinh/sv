@@ -326,27 +326,26 @@ class SessionManager:
         q = "UPDATE %s SET %s" % (table, update_fields)
         return self._execute(q, values, autocommit)
 
-    def update(self, table, values, where, autocommit=True):
+    async def update(self, table, values, where):
         """Update certain rows in a table
         :param table: Table name
         :param values: A dict (field_name: value)
         :param where: A dict (field_name: value)
-        :return The number of affected rows
+        :return: The number of affected rows
         """
+        if not where:
+            raise UserWarning('Database update() without WHERE clause. Use update_all() instead')
         fields = values.keys()
         # field_name = %(field_name_v)s (avoid conflicts with WHERE values)
         update_fields = ', '.join(['%s = %%(%s_v)s' % (field, field) for field in fields])
-        # Dangerous action
-        if not where:
-            raise UserWarning('Database update() without WHERE clause. Use update_all() instead')
-        # 'field_name': (1, 2, 3, 4) => field_name IN (1, 2, 3, 4)
-        # Psycopg2 syntax: field_name IN %(field_name)
-        where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field) for field, v in where.items()])
+        where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field)
+                                     for field, v in where.items()])
         q = "UPDATE %s SET %s WHERE %s" % (table, update_fields, where_clause)
         values = dict([(k + '_v', v) for k, v in values.items()])
         values.update(where)
-        self._execute(q, values, autocommit)
-        return self.cursor.rowcount
+        query, params = pyformat_to_native(q, values)
+        _, status, _ = await self.connection._execute(query, params, 0, None, True)
+        return int(status.split()[-1])
 
     def delete_all(self, table, autocommit=True):
         """Delete all rows from a table
