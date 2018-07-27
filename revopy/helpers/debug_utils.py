@@ -54,7 +54,9 @@ def get_exception_details():
         local_vars_info = []
         if frame.locals:
             for name, value in frame.locals.items():
-                local_vars_info.append('\t{name} = {value}'.format(name=name, value=value))
+                if name == "self":
+                    continue
+                local_vars_info.append(f'\t{name} = {value}')
         except_location += "\n" + frame.filename + ":" + str(frame.lineno) + " \n" + str(frame.name) + \
                            "\n<Args>:" + "\n".join(local_vars_info)
     msgs.insert(1, except_location)
