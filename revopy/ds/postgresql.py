@@ -338,7 +338,7 @@ class SessionManager:
         update_fields = ', '.join(['%s = %%(%s_v)s' % (field, field) for field in fields])
         # Dangerous action
         if not where:
-            raise Exception('Database update() without WHERE clause. Use update_all() instead')
+            raise UserWarning('Database update() without WHERE clause. Use update_all() instead')
         # 'field_name': (1, 2, 3, 4) => field_name IN (1, 2, 3, 4)
         # Psycopg2 syntax: field_name IN %(field_name)
         where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field) for field, v in where.items()])
@@ -349,7 +349,7 @@ class SessionManager:
         return self.cursor.rowcount
 
     def delete_all(self, table, autocommit=True):
-        """Deletes all rows from a table
+        """Delete all rows from a table
         :return The number of deleted rows
         """
         self.connect()
@@ -357,62 +357,28 @@ class SessionManager:
         self._execute(query, None, autocommit)
         return self.cursor.rowcount
 
-    def delete(self, table, where, autocommit=True):
+    def delete(self, table, where):
         """Deletes all rows that match the provided condition
-        :param table: Table name
-        :param where: A dict (field_name: value) indicates equality clause (=), (field_name: tuple) indicates IN clause
+        :param str table: Table name
+        :param dict where: A dict (field_name: value) indicates equality clause (=), (field_name: tuple) indicates IN clause
         :return The number of deleted rows
         """
-        self.connect()
-        # Dangerous action
         if not where:
-            raise BaseException('Database delete() without WHERE clause. Use delete_all() instead')
+            raise UserWarning('Database delete() without WHERE clause. Use delete_all() instead')
         where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field) for field, v in where.items()])
         q = "DELETE FROM %s WHERE %s" % (table, where_clause)
         self._execute(q, where, autocommit)
         return self.cursor.rowcount
 
     def delete_and_return(self, table, where, return_field='*', autocommit=True):
-        '''
-        Deletes and return deleted rows
-        '''
+        """Delete and return deleted rows
+        """
         if not where:
-            raise BaseException('Method delete_and_return() without WHERE clause. Use delete_all() instead')
+            raise UserWarning('Method delete_and_return() without WHERE clause. Use delete_all() instead')
         where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field) for field, v in where.items()])
         q = "DELETE FROM %s WHERE %s RETURNING %s" % (table, where_clause, return_field)
         self._execute(q, where, autocommit)
         return self.cursor.fetchall()
-
-    def _execute(self, query, params, autocommit, execute_many=False):
-        """
-        :return Affected row count, return_id
-        """
-        if autocommit is False:
-            self.begin_transaction()
-            executed = False
-            try:
-                if self.debug_queries:
-                    logger.debug(self.generate_query(query, params))
-                if execute_many:
-                    self.cursor.executemany(query, params)
-                else:
-                    self.cursor.execute(query, params)
-                executed = True
-                return self.cursor.rowcount
-            finally:
-                if executed is False:
-                    self.end_transaction(commit=False)  # roll back the current transaction
-        else:
-            self.connect()
-            if self.debug_queries:
-                logger.debug(self.cursor.mogrify(query, params))
-            if execute_many:
-                self.cursor.executemany(query, params)
-            else:
-                self.cursor.execute(query, params)
-            if self.conn.autocommit is False or self.conn.isolation_level != extensions.ISOLATION_LEVEL_AUTOCOMMIT:
-                self.commit()
-            return self.cursor.rowcount
 
     def get_columns(self, table):
         """Return all columns as a list
