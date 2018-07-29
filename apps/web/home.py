@@ -2,6 +2,7 @@
 from vibora import Route
 from vibora import Request, Response
 
+import revopy
 from revopy.ds.postgresql import SessionManager
 from revopy.helpers.debug_utils import get_exception_details
 from start_app import app, managed, Config
@@ -81,6 +82,7 @@ async def test_connection(request: Request):
     import sys
     try:
         import datetime
+        connection: revopy.ds.postgresql.SessionManager = None
         async with managed(request.app.pg) as connection:
             ''':type : revopy.ds.postgresql.SessionManager'''
             rs1 = await connection.fetch_one("SELECT user_id, first_name FROM users")

@@ -1,13 +1,14 @@
 import asyncpg
 import logging
 import math
+from typing import Dict, List, Tuple
 from . import Null, is_placeholder, is_null
 from asyncpg import utils
 
 logger = logging.getLogger("app.postgresql")
 
 
-def pyformat_to_native(query: str, params: dict):
+def pyformat_to_native(query: str, params: Dict):
     """Convert SQL query formatted in pyformat to PostgreSQL native format
     E.x: SELECT * FROM users WHERE user_id = %(user_id)s AND status = %(status)s AND country = %(country)s
          will be converted to
@@ -26,7 +27,7 @@ def pyformat_to_native(query: str, params: dict):
     return new_query, field_values
 
 
-def pyformat_in_list_to_native(query: str, params: list):
+def pyformat_in_list_to_native(query: str, params: List[Dict]):
     """Convert SQL query formatted in pyformat to PostgreSQL native format
     E.x: INSERT INTO users (user_id, first_name) VALUES (%(user_id)s, %(first_name)s)
          [
@@ -72,7 +73,8 @@ class SessionManager:
         self.readonly = False
         self.deferrable = False
 
-    async def start(self, transactional, isolation, readonly, deferrable) -> asyncpg.connection.Connection:
+    async def start(self, transactional: bool, isolation: str,
+                    readonly: bool, deferrable: bool) -> asyncpg.connection.Connection:
         """Initialize a database session
         :param bool transactional:
         :param str isolation:
@@ -93,7 +95,7 @@ class SessionManager:
         self.transaction = await self.connection.transaction()
         await self.transaction.start()
 
-    async def close(self, release=True):
+    async def close(self, release: bool=True):
         """Close database session and release the current connection to the pool
         :param bool release:
         """
@@ -102,7 +104,7 @@ class SessionManager:
         self.connection = None
         self.transaction = None
 
-    async def fetch_one(self, query, params=None):
+    async def fetch_one(self, query: str, params: Dict=None) -> Dict:
         """Retrieve a single row
         :param str query:
         :param dict params:
@@ -117,7 +119,7 @@ class SessionManager:
             return {}
         return dict(ret)
 
-    async def fetch_column(self, query, params=None):
+    async def fetch_column(self, query: str, params: Dict=None) -> List:
         """Fetch all possible values of the first column of rows, returning a list
         :param str query:
         :param dict params:
@@ -131,7 +133,7 @@ class SessionManager:
             ret = await self.connection.fetch(query)
         return [row[0] for row in ret]
 
-    async def fetch_value(self, query, params=None):
+    async def fetch_value(self, query: str, params: Dict=None):
         """Retrieve the value of the first column on the first row
         :param str query:
         :param dict params:
@@ -147,7 +149,7 @@ class SessionManager:
             return Null()
         return ret
 
-    async def fetch_all(self, query, params=None):
+    async def fetch_all(self, query: str, params: Dict=None) -> List[Dict]:
         """Fetches all (remaining) rows of a query result, returning a list
         :param str query:
         :param dict params:
@@ -160,7 +162,7 @@ class SessionManager:
             ret = await self.connection.fetch(query)
         return [dict(row) for row in ret]
 
-    async def fetch_by_page(self, query, page, rows_per_page, params=None):
+    async def fetch_by_page(self, query: str, page: int, rows_per_page: int, params: Dict=None) -> Tuple[List, int]:
         """Fetch all (remaining) rows of a query result, returning a tuple (rows, total)
         :param str query:
         :param int page:
@@ -197,7 +199,7 @@ class SessionManager:
             ret = await self.execute_and_fetch(query, None)
         return ret, row_count
 
-    async def execute(self, query: str, params: dict=None, timeout: float=None) -> str:
+    async def execute(self, query: str, params: Dict=None, timeout: float=None) -> int:
         """Execute a query
         :param str query:
         :param dict params:
@@ -214,7 +216,7 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, timeout, True)
         return int(status.split()[-1])
 
-    async def execute_many(self, query: str, params: list, timeout: float=None):
+    async def execute_many(self, query: str, params: List, timeout: float=None) -> int:
         """Sequentially perform a query against a list of data
         :param str query:
         :param dict params:
@@ -227,7 +229,7 @@ class SessionManager:
         query, params = pyformat_in_list_to_native(query, params)
         return await self.connection._executemany(query, params, timeout)
 
-    async def execute_and_fetch(self, query, params=None, timeout=None, return_status=False):
+    async def execute_and_fetch(self, query: str, params: Dict=None, timeout: int=None, return_status: bool=False):
         """Execute a query and get returned data
         :param str query:
         :param dict params:
@@ -247,7 +249,8 @@ class SessionManager:
         result, _stmt = await self.connection._do_execute(query, executor, timeout)
         return [dict(item) for item in result]
 
-    async def insert(self, table, values, return_fields=None, check_placeholder=False):
+    async def insert(self, table: str, values: Dict, return_fields: str=None,
+                     check_placeholder: bool=False) -> Tuple[Dict, int]:
         """Insert a row into a table
         :param table: Table name
         :param values: A dict of field name and its value
@@ -285,18 +288,18 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return {}, int(status.split()[-1])
 
-    def insert_many(self, table, values, return_id=None, autocommit=True, check_placeholder=False):
+    def insert_many(self, table: str, values: Dict, return_id=None, autocommit=True, check_placeholder=False):
         self.connection._check_open()
         q = self._generate_bulk_insert_query(table, values, return_id, check_placeholder)
         execute_many = False if return_id or check_placeholder is True else True
         return self._execute(q, values, autocommit, execute_many=execute_many)
 
-    def _generate_bulk_insert_query(self, table, values, return_id, check_placeholder=False):
+    def _generate_bulk_insert_query(self, table: str, values: Dict, return_id, check_placeholder=False):
         if return_id or check_placeholder is True:
             return self._multi_insert_sql(table, values, return_id, check_placeholder)
         return self._bind_bulk_insert_sql(table, values, check_placeholder=False)
 
-    def _bind_bulk_insert_sql(self, table, values, check_placeholder=True):
+    def _bind_bulk_insert_sql(self, table: str, values: List[Dict], check_placeholder=True):
         """
         @see psycopg2:executemany()
         """
@@ -324,9 +327,9 @@ class SessionManager:
                         row.update(row[field].bind_values)  # Bind values used in placeholder string
         return "INSERT INTO %s (%s) VALUES (%s)" % (table, ','.join(fields), all_fields)
 
-    def _multi_insert_sql(self, table, values, return_id, check_placeholder):
+    def _multi_insert_sql(self, table: str, values: List[Dict], return_id, check_placeholder):
         """
-        @see http://www.postgresql.org/docs/9.2/static/sql-insert.html (look for "To insert multiple rows using the multirow VALUES syntax:")
+        :see https://www.postgresql.org/docs/10/static/sql-insert.html (look for "To insert multiple rows using the multirow VALUES syntax:")
         """
         fields = values[0].keys()
         all_rows = []
@@ -335,7 +338,7 @@ class SessionManager:
                 field_values = []
                 for field in fields:
                     if row[field]:
-                        # @see http://michael.otacoo.com/postgresql-2/manipulating-arrays-in-postgresql/
+                        # See: https://paquier.xyz/postgresql-2/manipulating-arrays-in-postgresql/
                         if isinstance(row[field], list):
                             v = "'{%s}'" % ','.join(utils._quote_literal(str(x)) for x in row[field])
                         else:
@@ -354,7 +357,7 @@ class SessionManager:
                                 v = row[field].placeholder % row[field].bind_values
                             else:
                                 v = row[field].placeholder
-                        # @see http://michael.otacoo.com/postgresql-2/manipulating-arrays-in-postgresql/
+                        # See: https://paquier.xyz/postgresql-2/manipulating-arrays-in-postgresql/
                         elif isinstance(row[field], list):
                             v = "'{%s}'" % ','.join(utils._quote_literal(str(x)) for x in row[field])
                         else:
@@ -367,7 +370,7 @@ class SessionManager:
             return "INSERT INTO %s (%s) VALUES %s" % (table, ','.join(fields), ','.join(all_rows))
         return "INSERT INTO %s (%s) VALUES %s RETURNING %s" % (table, ','.join(fields), ','.join(all_rows), return_id)
 
-    async def update_all(self, table, values):
+    async def update_all(self, table: str, values: Dict) -> int:
         """Update all rows in a table
         :param table: Table name
         :param values: A dict (field_name: value)
@@ -380,7 +383,7 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return int(status.split()[-1])
 
-    async def update(self, table, values, where):
+    async def update(self, table: str, values: Dict, where: Dict) -> int:
         """Update certain rows in a table
         :param table: Table name
         :param values: A dict (field_name: value)
@@ -401,7 +404,7 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return int(status.split()[-1])
 
-    async def delete_all(self, table):
+    async def delete_all(self, table: str) -> int:
         """Delete all rows from a table
         :param str table: Table name
         :return The number of deleted rows
@@ -410,7 +413,7 @@ class SessionManager:
         status = await self.connection._protocol.query(query, None)
         return int(status.split()[-1])
 
-    async def delete(self, table, where):
+    async def delete(self, table: str, where: Dict) -> int:
         """Delete all rows that match the provided condition
         :param str table: Table name
         :param dict where: A dict (field_name: value) indicates equality clause (=),
@@ -426,10 +429,10 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return int(status.split()[-1])
 
-    def delete_and_return(self, table, where, return_field='*'):
+    def delete_and_return(self, table: str, where: Dict, return_field='*') -> List:
         """Delete and return deleted rows
         :param str table: Table name
-        :param str where:
+        :param dict where:
         :param str return_field:
         :return List of deleted rows
         """
