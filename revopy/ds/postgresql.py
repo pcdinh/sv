@@ -1,14 +1,14 @@
 import asyncpg
 import logging
 import math
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 from . import Null, is_placeholder, is_null
 from asyncpg import utils
 
 logger = logging.getLogger("app.postgresql")
 
 
-def pyformat_to_native(query: str, params: Dict):
+def pyformat_to_native(query: str, params: Dict) -> Tuple[str, Dict]:
     """Convert SQL query formatted in pyformat to PostgreSQL native format
     E.x: SELECT * FROM users WHERE user_id = %(user_id)s AND status = %(status)s AND country = %(country)s
          will be converted to
@@ -133,7 +133,7 @@ class SessionManager:
             ret = await self.connection.fetch(query)
         return [row[0] for row in ret]
 
-    async def fetch_value(self, query: str, params: Dict=None):
+    async def fetch_value(self, query: str, params: Dict=None) -> Union[Null, None, str, int]:
         """Retrieve the value of the first column on the first row
         :param str query:
         :param dict params:
@@ -229,7 +229,8 @@ class SessionManager:
         query, params = pyformat_in_list_to_native(query, params)
         return await self.connection._executemany(query, params, timeout)
 
-    async def execute_and_fetch(self, query: str, params: Dict=None, timeout: int=None, return_status: bool=False):
+    async def execute_and_fetch(self, query: str, params: Dict=None,
+                                timeout: int=None, return_status: bool=False) -> List[Dict]:
         """Execute a query and get returned data
         :param str query:
         :param dict params:
@@ -288,7 +289,7 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return {}, int(status.split()[-1])
 
-    def insert_many(self, table: str, values: Dict, return_id=None, autocommit=True, check_placeholder=False):
+    def insert_many(self, table: str, values: List[Dict], return_id=None, autocommit=True, check_placeholder=False):
         self.connection._check_open()
         q = self._generate_bulk_insert_query(table, values, return_id, check_placeholder)
         execute_many = False if return_id or check_placeholder is True else True
@@ -429,7 +430,7 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return int(status.split()[-1])
 
-    def delete_and_return(self, table: str, where: Dict, return_field='*') -> List:
+    def delete_and_fetch(self, table: str, where: Dict, return_field='*') -> List[Dict]:
         """Delete and return deleted rows
         :param str table: Table name
         :param dict where:
