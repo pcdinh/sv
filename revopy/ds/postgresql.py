@@ -316,6 +316,7 @@ class SessionManager:
         :param bool return_status:
         :return: a list of dictionaries
         """
+        self.connection._check_open()
         if params:
             query, params = pyformat_to_native(query, params)
         with self.connection._stmt_exclusive_section:
@@ -390,7 +391,6 @@ class SessionManager:
         :param int timeout:
         :return: a tuple (return_dict, affected_rows)
         """
-        self.connection._check_open()
         query = generate_bulk_insert_query(table, row_values)
         q = query + " RETURNING %s" % return_fields
         return await self.execute_and_fetch(q)
@@ -401,6 +401,7 @@ class SessionManager:
         :param values: A dict (field_name: value)
         :return: The number of affected rows
         """
+        self.connection._check_open()
         fields = values.keys()
         update_fields = ', '.join([f'{field} = %({field})s' for field in fields])
         q = f"UPDATE {table} SET {update_fields}"
@@ -417,6 +418,7 @@ class SessionManager:
         """
         if not where:
             raise UserWarning('Database update() without WHERE clause. Use update_all() instead')
+        self.connection._check_open()
         fields = values.keys()
         # field_name = %(field_name_v)s (avoid conflicts with WHERE values)
         update_fields = ', '.join(['%s = %%(%s_v)s' % (field, field) for field in fields])
@@ -434,6 +436,7 @@ class SessionManager:
         :param str table: Table name
         :return The number of deleted rows
         """
+        self.connection._check_open()
         query = "DELETE FROM {}".format(table)
         status = await self.connection._protocol.query(query, None)
         return int(status.split()[-1])
@@ -447,6 +450,7 @@ class SessionManager:
         """
         if not where:
             raise UserWarning('Database delete() without WHERE clause. Use delete_all() instead')
+        self.connection._check_open()
         where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field)
                                      for field, v in where.items()])
         query = "DELETE FROM %s WHERE %s" % (table, where_clause)
