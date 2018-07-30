@@ -7,7 +7,7 @@ from revopy.ds.postgresql import SessionManager
 from revopy.helpers.debug_utils import get_exception_details
 from start_app import app, managed, Config
 from revopy.helpers.response_utils import JsonResponse, WebResponse
-from revopy.ds import is_null
+from revopy.ds import is_null, Placeholder
 
 
 @app.route('/')
@@ -291,7 +291,7 @@ async def test_connection(request: Request):
                     {
                         "user_id": 5,
                         "first_name": "F5",
-                        "last_name": "L5",
+                        "last_name": Placeholder("UPPER(%(last_name)s)", {"last_name": "Last5"}),
                         "source": 1,
                         "status": 1,
                         "access_token": None,
@@ -300,7 +300,7 @@ async def test_connection(request: Request):
                     {
                         "user_id": 6,
                         "first_name": "F6",
-                        "last_name": "L6",
+                        "last_name": Placeholder("UPPER('Last6')"),
                         "source": 1,
                         "status": 1,
                         "access_token": None,
@@ -308,7 +308,7 @@ async def test_connection(request: Request):
                     }
                 ]
             )
-            rs30 = await connection.fetch_all("SELECT user_id FROM users")
+            rs30 = await connection.fetch_all("SELECT user_id, first_name, last_name FROM users")
             return JsonResponse(
                 {
                     "rs1": rs1,

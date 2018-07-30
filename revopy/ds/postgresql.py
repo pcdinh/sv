@@ -2,7 +2,7 @@ import asyncpg
 import logging
 import math
 from typing import Dict, List, Tuple, Union
-from . import Null, is_placeholder, is_null
+from . import Null, is_placeholder, is_null, Placeholder
 from asyncpg import utils
 
 logger = logging.getLogger("app.postgresql")
@@ -93,6 +93,21 @@ def quote_array(values) -> str:
     return ret % ",".join(quoted_values)
 
 
+def quote_placeholder(placeholder: Placeholder):
+    # Noted that we may have pyformat replacement inside
+    # E.x: "ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326)"
+    if placeholder.bind_values:
+        bind_values = placeholder.bind_values.copy()  # copy it
+        for bind_key, bind_val in bind_values.items():
+            if isinstance(bind_val, (list, tuple)):
+                bind_values[bind_key] = quote_array(bind_val)
+            else:
+                # Nested placeholder is not accepted
+                bind_values[bind_key] = quote(bind_val)
+        return placeholder.placeholder % bind_values
+    return placeholder.placeholder
+
+
 def generate_bulk_insert_query(table: str, rows: List[Dict]) -> str:
     """Generate bulk insert query
     :param str table:
@@ -114,20 +129,7 @@ def generate_bulk_insert_query(table: str, rows: List[Dict]) -> str:
             elif isinstance(value, (list, tuple)):
                 new_row.append(quote_array(value))
             elif is_placeholder(value):
-                # Noted that we may have pyformat replacement inside
-                # E.x: "ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326)"
-                if value.bind_values:
-                    bind_values = value.bind_values[:]  # copy it
-                    for bind_key, bind_val in bind_values.items():
-                        if isinstance(bind_val, (list, tuple)):
-                            bind_values[bind_key] = quote_array(bind_val)
-                        else:
-                            # Nested placeholder is not accepted
-                            new_row.append(quote(value))
-                    placeholder_val = value.placeholder % bind_values
-                    new_row.append(placeholder_val)  # do not escape the value
-                else:
-                    new_row.append(value.placeholder)  # do not escape the value
+                new_row.append(quote_placeholder(value))
             else:
                 new_row.append(quote(value))
         row_values.append(",".join(new_row))
