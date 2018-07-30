@@ -136,6 +136,27 @@ def generate_bulk_insert_query(table: str, rows: List[Dict]) -> str:
     return "INSERT INTO %s (%s) VALUES (%s)" % (table, ','.join(fields), '),('.join(row_values))
 
 
+def generate_native_insert_query(table: str, row: Dict) -> Tuple[str, Dict]:
+    """Create an INSERT query using PostgreSQL's native bind format: $n
+    :param str table:
+    :param dict row:
+    :return: a tuple (str, dict)
+    """
+    fields = row.keys()
+    placeholders = []
+    counter = 1
+    params = []
+    for field in fields:
+        value = row[field]
+        if is_placeholder(value):
+            placeholders.append(quote_placeholder(value))
+        else:
+            placeholders.append("$%s" % counter)
+            params.append(value)
+            counter += 1
+    return "INSERT INTO %s (%s) VALUES (%s)" % (table, ','.join(fields), ','.join(placeholders)), params
+
+
 class SessionManager:
     """Provides manageability for a database session"""
     def __init__(self, pg_pool: asyncpg.pool.Pool, timeout=None):
@@ -329,42 +350,24 @@ class SessionManager:
         result, _stmt = await self.connection._do_execute(query, executor, timeout)
         return [dict(item) for item in result]
 
-    async def insert(self, table: str, values: Dict, return_fields: str=None,
+    async def insert(self, table: str, row_values: Dict, return_fields: str=None,
                      check_placeholder: bool=False) -> Tuple[Dict, int]:
         """Insert a row into a table
         :param table: Table name
-        :param values: A dict of field name and its value
+        :param row_values: A dict of field name and its value
         :param return_fields: Field name to return
         :param check_placeholder: bool
         :return: a tuple (return_dict, affected_rows)
         """
-        self.connection._check_open()
-        fields = values.keys()
-        if check_placeholder is False:
-            value_placeholders = ['%%(%s)s' % field for field in fields]  # Created %(field_name)s
-        else:
-            value_placeholders = []
-            for field in fields:
-                # values = {'coordinates': Placeholder("ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326)", bind_values) }
-                if is_placeholder(values[field]):
-                    value_placeholders.append(values[field].placeholder)  # Assigned to a position: (%(field_1)s, place_holder_here, %(field_2)s)
-                    values.update(values[field].bind_values)
-                else:
-                    value_placeholders.append('%%(%s)s' % field)  # Created %(field_name)s
-        if not return_fields:
-            q = "INSERT INTO %s (%s) VALUES (%s)" % (
-                table, ','.join(fields), ','.join(value_placeholders)
-            )
-        else:
-            q = "INSERT INTO %s (%s) VALUES (%s) RETURNING %s" % (
-                table, ','.join(fields), ','.join(value_placeholders), return_fields
-            )
-        query, params = pyformat_to_native(q, values)
+        query, params = generate_native_insert_query(table, row_values)
+        if return_fields:
+            query = query + " RETURNING %s" % return_fields
         if return_fields:
             ret = await self.connection.fetchrow(query, *params)
             if not ret:
                 return {}, 0
             return dict(ret), 1
+        self.connection._check_open()
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return {}, int(status.split()[-1])
 
