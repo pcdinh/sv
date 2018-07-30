@@ -9,7 +9,7 @@ logger = logging.getLogger("app.postgresql")
 
 
 def pyformat_to_native(query: str, params: Dict) -> Tuple[str, Dict]:
-    """Convert SQL query formatted in pyformat to PostgreSQL native format
+    """Rewrite SQL query formatted in pyformat to PostgreSQL native format
     E.x: SELECT * FROM users WHERE user_id = %(user_id)s AND status = %(status)s AND country = %(country)s
          will be converted to
          SELECT * FROM users WHERE user_id = $1 AND status = $2 AND country = $3
@@ -28,7 +28,7 @@ def pyformat_to_native(query: str, params: Dict) -> Tuple[str, Dict]:
 
 
 def pyformat_in_list_to_native(query: str, params: List[Dict]):
-    """Convert SQL query formatted in pyformat to PostgreSQL native format
+    """Rewrite SQL query formatted in pyformat to PostgreSQL native format
     E.x: INSERT INTO users (user_id, first_name) VALUES (%(user_id)s, %(first_name)s)
          [
            {'user_id': 1, 'first_name': 'A1'}, {'user_id': 2, 'first_name': 'A2'}
