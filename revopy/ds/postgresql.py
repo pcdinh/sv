@@ -290,7 +290,7 @@ class SessionManager:
             _, status, _ = await self.connection._execute(query, params, 0, timeout, True)
         parts = status.split()
         if parts[0] in ("DELETE", "INSERT", "UPDATE"):
-            return int(status.split()[-1])
+            return int(parts[-1])
         # CREATE SEQUENCE, TRUNCATE TABLE
         return 0
 
