@@ -32,9 +32,10 @@ class managed:
             connection.fetch_one()
             connection.fetch_all()
     """
+
     def __init__(self, session: SessionManager,
-                 transactional: bool=False, isolation: str='read_committed',
-                 readonly: bool=False, deferrable: bool=False):
+                 transactional: bool = False, isolation: str = 'read_committed',
+                 readonly: bool = False, deferrable: bool = False):
         self.session = session
         self.transactional = transactional
         self.isolation = isolation
@@ -93,25 +94,12 @@ class managed:
             return False
 
 
-class PoolManager:
-    def __init__(self, pg_pool):
-        self.pg_pool = pg_pool
-
-    async def fetch(self, sql, *args, **kwargs):
-        async with self.pg_pool.acquire() as connection:
-            return await connection.fetch(sql, *args, **kwargs)
-
-    async def execute(self, sql, *args, **kwargs):
-        async with self.pg_pool.acquire() as connection:
-            return await connection.execute(sql, *args, **kwargs)
-
-
-# Config will be a new component.
 class Config:
-    """
+    """Configuration loader
     :param root_path: path to which files are read relative from.
     :param defaults: an optional dictionary of default values
     """
+
     def __init__(self, root_path, defaults=None):
         self.dict = {}
         self.dict.update(defaults or {})
@@ -135,7 +123,7 @@ class Config:
                 exec(compile(config_file.read(), filename, 'exec'), d.__dict__)
         except IOError as e:
             if silent and e.errno in (
-                errno.ENOENT, errno.EISDIR, errno.ENOTDIR
+                    errno.ENOENT, errno.EISDIR, errno.ENOTDIR
             ):
                 return False
             e.strerror = 'Unable to load configuration file ({})'.format(e.strerror)
@@ -169,10 +157,10 @@ async def initialize_engine(current_app: Vibora):
     app.components.add(config)
     ''':type : asyncpg.connection.Connection'''
     pg_pool: asyncio.Future = await asyncpg.create_pool(
-                                  current_app.components.get(Config).POSTGRESQL_DSN,
-                                  max_inactive_connection_lifetime=60,
-                                  min_size=1,
-                                  max_size=3,
-                                  loop=app.loop
-                              )
+        current_app.components.get(Config).POSTGRESQL_DSN,
+        max_inactive_connection_lifetime=60,
+        min_size=1,
+        max_size=3,
+        loop=app.loop
+    )
     app.pg: SessionManager = SessionManager(pg_pool)
