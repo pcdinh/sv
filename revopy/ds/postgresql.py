@@ -420,7 +420,7 @@ class SessionManager:
         :return: The number of affected rows
         """
         if not where:
-            raise UserWarning('Database update() without WHERE clause. Use update_all() instead')
+            raise UserWarning('Inappropriate use of update() without WHERE clause. Use update_all() instead')
         self.connection._check_open()
         fields = values.keys()
         # field_name = %(field_name_v)s (avoid conflicts with WHERE values)
@@ -452,7 +452,7 @@ class SessionManager:
         :return The number of deleted rows
         """
         if not where:
-            raise UserWarning('Database delete() without WHERE clause. Use delete_all() instead')
+            raise UserWarning('Inappropriate use of delete() without WHERE clause. Use delete_all() instead')
         self.connection._check_open()
         where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field)
                                      for field, v in where.items()])
@@ -469,7 +469,7 @@ class SessionManager:
         :return List of deleted rows
         """
         if not where:
-            raise UserWarning('Method delete_and_return() without WHERE clause. Use delete_all() instead')
+            raise UserWarning('Inappropriate use of delete_and_fetch() without WHERE clause. Use delete_all() instead')
         where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field)
                                      for field, v in where.items()])
         q = "DELETE FROM %s WHERE %s RETURNING %s" % (table, where_clause, return_field)
