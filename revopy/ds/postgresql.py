@@ -285,10 +285,14 @@ class SessionManager:
             # status can be: SELECT 0
             #                INSERT 0 1
             status = await self.connection._protocol.query(query, timeout)
+        else:
+            query, params = pyformat_to_native(query, params)
+            _, status, _ = await self.connection._execute(query, params, 0, timeout, True)
+        parts = status.split()
+        if parts[0] in ("DELETE", "INSERT", "UPDATE"):
             return int(status.split()[-1])
-        query, params = pyformat_to_native(query, params)
-        _, status, _ = await self.connection._execute(query, params, 0, timeout, True)
-        return int(status.split()[-1])
+        # CREATE SEQUENCE, TRUNCATE TABLE
+        return 0
 
     async def execute_many(self, query: str, params: List, timeout: float=None) -> int:
         """Sequentially perform a query against a list of data
@@ -316,7 +320,7 @@ class SessionManager:
             query, params = pyformat_to_native(query, params)
         with self.connection._stmt_exclusive_section:
             executor = lambda stmt, timeout: self.connection._protocol.bind_execute(
-                stmt, params, '', 0, return_status, timeout
+                stmt, params or [], '', 0, return_status, timeout
             )
         timeout = self.connection._protocol._get_timeout(timeout)
         # type : result: list(asyncpg.Record)
@@ -367,12 +371,29 @@ class SessionManager:
         """Insert many rows into a table using a single query
         :param str table:
         :param dict row_values:
-        :return:
+        :param str return_fields:
+        :param int timeout:
+        :return: a tuple (return_dict, affected_rows)
         """
         self.connection._check_open()
         query = generate_bulk_insert_query(table, row_values)
         status = await self.connection._protocol.query(query, timeout)
         return int(status.split()[-1])
+
+    async def bulk_insert_and_fetch(self, table: str, row_values: List[Dict], return_fields: str,
+                                    timeout: int=None) -> List[Dict]:
+        """Insert many rows into a table using a single query and return specific fields of newly inserted rows
+        The method can be used to retrieve automatically generated field values such as primary keys
+        :param str table:
+        :param dict row_values:
+        :param str return_fields:
+        :param int timeout:
+        :return: a tuple (return_dict, affected_rows)
+        """
+        self.connection._check_open()
+        query = generate_bulk_insert_query(table, row_values)
+        q = query + " RETURNING %s" % return_fields
+        return await self.execute_and_fetch(q)
 
     async def update_all(self, table: str, values: Dict) -> int:
         """Update all rows in a table

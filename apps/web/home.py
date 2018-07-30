@@ -309,6 +309,33 @@ async def test_connection(request: Request):
                 ]
             )
             rs30 = await connection.fetch_all("SELECT user_id, first_name, last_name FROM users")
+
+            await connection.delete_all("users")
+            rs31 = await connection.execute("CREATE SEQUENCE IF NOT EXISTS users_user_id;")
+            rs32 = await connection.bulk_insert_and_fetch(
+                "users",
+                [
+                    {
+                        "user_id": Placeholder("NEXTVAL('users_user_id')"),
+                        "first_name": "F5",
+                        "last_name": Placeholder("UPPER(%(last_name)s)", {"last_name": "Last5"}),
+                        "source": 1,
+                        "status": 1,
+                        "access_token": None,
+                        "created_time": datetime.datetime.utcnow()
+                    },
+                    {
+                        "user_id": Placeholder("NEXTVAL('users_user_id')"),
+                        "first_name": "F6",
+                        "last_name": Placeholder("UPPER('Last6')"),
+                        "source": 1,
+                        "status": 1,
+                        "access_token": None,
+                        "created_time": datetime.datetime.utcnow()
+                    }
+                ],
+                return_fields="user_id"
+            )
             return JsonResponse(
                 {
                     "rs1": rs1,
@@ -340,7 +367,9 @@ async def test_connection(request: Request):
                     "rs27": rs27,
                     "rs28": rs28,
                     "rs29": rs29,
-                    "rs30": rs30
+                    "rs30": rs30,
+                    "rs31": rs31,
+                    "rs32": rs32
                 }
             )
     except Exception as error:
