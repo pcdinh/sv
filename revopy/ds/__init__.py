@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+
 class Null:
     """Used in `~revopy.ds` to make difference with
 
@@ -27,15 +28,15 @@ class Placeholder:
     VALUES (USER_DEFINED_CALL(%(not_function)s))
     """
 
-    def __init__(self, placeholder, binded_values=None):
+    def __init__(self, placeholder, bind_values=None):
         """
-        :param placeholder: str
+        :param str placeholder:
                E.x "ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326)"
-        :param binded_values: dict
+        :param dict bind_values:
                A dict
         """
         self.placeholder = placeholder
-        self.binded_values = binded_values or {}
+        self.bind_values = bind_values or {}
 
 
 def is_null(value):

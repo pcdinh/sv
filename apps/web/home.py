@@ -244,7 +244,7 @@ async def test_connection(request: Request):
                 },
                 return_fields="user_id, first_name"
             )
-            rs24 = await connection.delete_and_return(
+            rs24 = await connection.delete_and_fetch(
                 "users",
                 {
                     "user_id": 3
@@ -284,6 +284,29 @@ async def test_connection(request: Request):
                 "SELECT user_id FROM users WHERE first_name = ANY(%(first_name)s)",
                 {"first_name": ["F4", "F5"]}
             )
+            await connection.delete_all("users")
+            rs29 = await connection.bulk_insert(
+                "users",
+                [
+                    {
+                        "user_id": 5,
+                        "first_name": "F5",
+                        "last_name": "L5",
+                        "source": 1,
+                        "status": 1,
+                        "created_time": datetime.datetime.utcnow()
+                    },
+                    {
+                        "user_id": 6,
+                        "first_name": "F6",
+                        "last_name": "L6",
+                        "source": 1,
+                        "status": 1,
+                        "created_time": datetime.datetime.utcnow()
+                    }
+                ]
+            )
+            rs30 = await connection.fetch_all("SELECT user_id FROM users")
             return JsonResponse(
                 {
                     "rs1": rs1,
@@ -313,7 +336,9 @@ async def test_connection(request: Request):
                     "rs25": rs25,
                     "rs26": rs26,
                     "rs27": rs27,
-                    "rs28": rs28
+                    "rs28": rs28,
+                    "rs29": rs29,
+                    "rs30": rs30
                 }
             )
     except Exception as error:

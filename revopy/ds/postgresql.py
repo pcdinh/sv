@@ -62,6 +62,78 @@ def pyformat_in_list_to_native(query: str, params: List[Dict]):
     return new_query, field_values
 
 
+def quote(field_value) -> str:
+    """Escape a value to be able to insert into PostgreSQL
+    :param field_value:
+    :return:
+    """
+    if isinstance(field_value, str):
+        return utils._quote_literal(field_value)
+    if field_value is None:
+        return 'NULL'
+    if isinstance(field_value, (int, float, complex)):
+        return str(field_value)
+    # Applicable for date, time, text, varchar
+    return utils._quote_literal(str(field_value))
+
+
+def quote_array(values) -> str:
+    """Convert Python value into string that is compatible with PostgreSQL's query
+    first_name = "Name 01" => 'Name 01'
+    this_date = datetime.datetime.now() => '2018-07-30 11:54:25.161946'
+    this_date = datetime.datetime.now(datetime.timezone.utc) => '2018-07-30 05:12:30.279286+00:00'
+    See: https://paquier.xyz/postgresql-2/manipulating-arrays-in-postgresql/
+    :param values:
+    :return:
+    """
+    ret = "'{%s}'"
+    quoted_values = []
+    for v in values:
+        quoted_values.append(quote(v))
+    return ret % ",".join(quoted_values)
+
+
+def generate_bulk_insert_query(table: str, rows: List[Dict]) -> str:
+    """Generate bulk insert query
+    :param str table:
+    :param dict rows:
+    :return: str
+            A query looks like:
+            INSERT INTO table_name (user_id, first_name, last_name) VALUES
+            (1, 'D1', 'D2'), (2, 'A1', 'A2');
+    """
+    fields = rows[0].keys()
+    all_fields = []  # field placeholders
+    row_values = []
+    for row in rows:
+        new_row = []
+        for field in fields:
+            value = row[field]
+            if value is None or isinstance(value, (int, str, bytes)):
+                new_row.append(quote(value))
+            elif isinstance(value, (list, tuple)):
+                new_row.append(quote_array(value))
+            elif is_placeholder(value):
+                # Noted that we may have pyformat replacement inside
+                # E.x: "ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326)"
+                if value.bind_values:
+                    bind_values = value.bind_values[:]  # copy it
+                    for bind_key, bind_val in bind_values.items():
+                        if isinstance(bind_val, (list, tuple)):
+                            bind_values[bind_key] = quote_array(bind_val)
+                        else:
+                            # Nested placeholder is not accepted
+                            new_row.append(quote(value))
+                    placeholder_val = value.placeholder % bind_values
+                    new_row.append(placeholder_val)  # do not escape the value
+                else:
+                    new_row.append(value.placeholder)  # do not escape the value
+            else:
+                new_row.append(quote(value))
+        row_values.append(",".join(new_row))
+    return "INSERT INTO %s (%s) VALUES (%s)" % (table, ','.join(fields), '),('.join(row_values))
+
+
 class SessionManager:
     """Provides manageability for a database session"""
     def __init__(self, pg_pool: asyncpg.pool.Pool, timeout=None):
@@ -289,87 +361,16 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return {}, int(status.split()[-1])
 
-    def insert_many(self, table: str, values: List[Dict], return_id=None, autocommit=True, check_placeholder=False):
+    async def bulk_insert(self, table: str, row_values: List[Dict], timeout: int=None) -> int:
+        """Insert many rows into a table using a single query
+        :param str table:
+        :param dict row_values:
+        :return:
+        """
         self.connection._check_open()
-        q = self._generate_bulk_insert_query(table, values, return_id, check_placeholder)
-        execute_many = False if return_id or check_placeholder is True else True
-        return self._execute(q, values, autocommit, execute_many=execute_many)
-
-    def _generate_bulk_insert_query(self, table: str, values: Dict, return_id, check_placeholder=False):
-        if return_id or check_placeholder is True:
-            return self._multi_insert_sql(table, values, return_id, check_placeholder)
-        return self._bind_bulk_insert_sql(table, values, check_placeholder=False)
-
-    def _bind_bulk_insert_sql(self, table: str, values: List[Dict], check_placeholder=True):
-        """
-        @see psycopg2:executemany()
-        """
-        fields = values[0].keys()
-        all_fields = []  # field placeholders
-        if check_placeholder is False:
-            row_data = []
-            for field in fields:
-                row_data.append('%%(%s)s' % field)  # Created %(field_name)s: %% is converted to %
-            all_fields = ','.join(row_data)
-        else:
-            row_data = []
-            for field in fields:
-                if is_placeholder(values[0][field]):
-                    row_data.append(values[0][field].placeholder)  # Assigned by position, not creating a %(field_name)s
-                else:
-                    row_data.append('%%(%s)s' % field)  # Created %(field_name)s
-            all_fields = ','.join(row_data)
-
-            for row in values:
-                for field in fields:
-                    # values = {'coordinates': Placeholder("ST_SetSRID(ST_MakePoint(%(longitude)s, %(latitude)s), 4326)", bind_values) }
-                    if is_placeholder(row[field]):
-                        row_data.append(row[field].placeholder)  # Assigned by position, not creating a %(field_name)s
-                        row.update(row[field].bind_values)  # Bind values used in placeholder string
-        return "INSERT INTO %s (%s) VALUES (%s)" % (table, ','.join(fields), all_fields)
-
-    def _multi_insert_sql(self, table: str, values: List[Dict], return_id, check_placeholder):
-        """
-        :see https://www.postgresql.org/docs/10/static/sql-insert.html (look for "To insert multiple rows using the multirow VALUES syntax:")
-        """
-        fields = values[0].keys()
-        all_rows = []
-        if check_placeholder is False:
-            for row in values:
-                field_values = []
-                for field in fields:
-                    if row[field]:
-                        # See: https://paquier.xyz/postgresql-2/manipulating-arrays-in-postgresql/
-                        if isinstance(row[field], list):
-                            v = "'{%s}'" % ','.join(utils._quote_literal(str(x)) for x in row[field])
-                        else:
-                            v = utils._quote_ident(row[field])
-                    else:
-                        v = 'NULL'
-                    field_values.append(v)
-                all_rows.append('(%s)' % ','.join(str(value) for value in field_values))
-        else:
-            for row in values:
-                field_values = []
-                for field in fields:
-                    if row[field]:
-                        if is_placeholder(row[field]):
-                            if row[field].bind_values:
-                                v = row[field].placeholder % row[field].bind_values
-                            else:
-                                v = row[field].placeholder
-                        # See: https://paquier.xyz/postgresql-2/manipulating-arrays-in-postgresql/
-                        elif isinstance(row[field], list):
-                            v = "'{%s}'" % ','.join(utils._quote_literal(str(x)) for x in row[field])
-                        else:
-                            v = utils._quote_literal(row[field])
-                    else:
-                        v = 'NULL'
-                    field_values.append(v)
-                all_rows.append('(%s)' % ','.join(str(value) for value in field_values))
-        if not return_id:
-            return "INSERT INTO %s (%s) VALUES %s" % (table, ','.join(fields), ','.join(all_rows))
-        return "INSERT INTO %s (%s) VALUES %s RETURNING %s" % (table, ','.join(fields), ','.join(all_rows), return_id)
+        query = generate_bulk_insert_query(table, row_values)
+        status = await self.connection._protocol.query(query, timeout)
+        return int(status.split()[-1])
 
     async def update_all(self, table: str, values: Dict) -> int:
         """Update all rows in a table
