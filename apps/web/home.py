@@ -294,6 +294,7 @@ async def test_connection(request: Request):
                         "last_name": "L5",
                         "source": 1,
                         "status": 1,
+                        "access_token": None,
                         "created_time": datetime.datetime.utcnow()
                     },
                     {
@@ -302,6 +303,7 @@ async def test_connection(request: Request):
                         "last_name": "L6",
                         "source": 1,
                         "status": 1,
+                        "access_token": None,
                         "created_time": datetime.datetime.utcnow()
                     }
                 ]
