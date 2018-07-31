@@ -255,9 +255,9 @@ class SessionManager:
         """
         if params:
             query, params = pyformat_to_native(query, params)
-            ret = await self._execute_and_fetch(query, params, 1, timeout=self.timeout)
+            ret = await self._execute_and_fetch(query, params, 0, timeout=self.timeout)
         else:
-            ret = await self._execute_and_fetch(query, None, 1, timeout=self.timeout)
+            ret = await self._execute_and_fetch(query, None, 0, timeout=self.timeout)
         return [dict(row) for row in ret]
 
     async def fetch_by_page(self, query: str, page: int, rows_per_page: int, params: Dict=None) -> Tuple[List, int]:
