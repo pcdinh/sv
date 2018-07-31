@@ -64,6 +64,7 @@ def pyformat_in_list_to_native(query: str, params: List[Dict]) -> Tuple[str, Lis
 
 def quote(field_value) -> str:
     """Escape a value to be able to insert into PostgreSQL
+
     :param field_value:
     :return:
     """
@@ -83,6 +84,7 @@ def quote_array(values) -> str:
     this_date = datetime.datetime.now() => '2018-07-30 11:54:25.161946'
     this_date = datetime.datetime.now(datetime.timezone.utc) => '2018-07-30 05:12:30.279286+00:00'
     See: https://paquier.xyz/postgresql-2/manipulating-arrays-in-postgresql/
+
     :param values:
     :return:
     """
@@ -110,6 +112,7 @@ def quote_placeholder(placeholder: Placeholder):
 
 def generate_bulk_insert_query(table: str, rows: List[Dict]) -> str:
     """Generate bulk insert query
+
     :param str table:
     :param dict rows:
     :return: str
@@ -137,6 +140,7 @@ def generate_bulk_insert_query(table: str, rows: List[Dict]) -> str:
 
 def generate_native_insert_query(table: str, row: Dict) -> Tuple[str, List]:
     """Create an INSERT query using PostgreSQL's native bind format: $n
+
     :param str table:
     :param dict row:
     :return: a tuple (str, dict)
@@ -161,6 +165,7 @@ class SessionManager:
 
     def __init__(self, pg_pool: asyncpg.pool.Pool, timeout=None):
         """Create an instance of SessionManager
+
         :param asyncpg.pool.Pool pg_pool:
         :param int timeout:
         """
@@ -175,6 +180,7 @@ class SessionManager:
     async def start(self, isolation: str,
                     readonly: bool, deferrable: bool) -> asyncpg.connection.Connection:
         """Initialize a database session
+
         :param str isolation:
         :param bool readonly:
         :param bool deferrable:
@@ -195,6 +201,7 @@ class SessionManager:
 
     async def close(self, release: bool=True):
         """Close database session and release the current connection to the pool
+
         :param bool release:
         """
         if release is True:
@@ -204,6 +211,7 @@ class SessionManager:
 
     async def fetch_one(self, query: str, params: Dict=None) -> Dict:
         """Retrieve a single row
+
         :param str query:
         :param dict params:
         :return: dict
@@ -219,6 +227,7 @@ class SessionManager:
 
     async def fetch_column(self, query: str, params: Dict=None) -> List:
         """Fetch all possible values of the first column of rows, returning a list
+
         :param str query:
         :param dict params:
         :return: list
@@ -233,6 +242,7 @@ class SessionManager:
 
     async def fetch_value(self, query: str, params: Dict=None) -> Union[Null, None, str, int]:
         """Retrieve the value of the first column on the first row
+
         :param str query:
         :param dict params:
         :return: Null if there is no matching row,
@@ -248,7 +258,8 @@ class SessionManager:
         return ret[0][0]
 
     async def fetch_all(self, query: str, params: Dict=None) -> List[Dict]:
-        """Fetches all (remaining) rows of a query result, returning a list
+        """Fetch all (remaining) rows of a query result, returning a list
+
         :param str query:
         :param dict params:
         :return: list
