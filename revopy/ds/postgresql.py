@@ -173,10 +173,9 @@ class SessionManager:
         self.readonly = False
         self.deferrable = False
 
-    async def start(self, transactional: bool, isolation: str,
+    async def start(self, isolation: str,
                     readonly: bool, deferrable: bool) -> asyncpg.connection.Connection:
         """Initialize a database session
-        :param bool transactional:
         :param str isolation:
         :param bool readonly:
         :param bool deferrable:

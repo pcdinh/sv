@@ -130,7 +130,7 @@ def deploy(context):
     """Execute deploy task
     Linux: fab2 -ssh-config=~/.ssh/config -H dev0 deploy
     Windows: fab2 --ssh-config=C:/Users/pcdinh/.ssh/config -H dev0 deploy
-             ENV_NAME=dev0 fab2 -H dev0 deploy
+             ENV_NAME=dev0 fab2 -H dev0 --prompt-for-login-password deploy
 
     ~/.ssh/config
 
@@ -144,6 +144,7 @@ def deploy(context):
     """
     # context.config['env'] = {'PATH': r'D:\cygwin64\bin'}
     context.config.run['replace_env'] = False
+    # context.config['connect_kwargs'] = {'look_for_keys': False}
     synchronize_code(context)
     start_server(context)
 

@@ -387,3 +387,8 @@ async def test_connection(request: Request):
             str(error) + ":" + type(error).__name__ + ">> \n" + str(e1) + "\n\n" + str(e2) + "\n\n" + e3,
             status_code=500
         )
+
+
+@app.route('/product/<product_id>')
+async def show_product(product_id: int):
+    return WebResponse(f'Chosen product: {product_id}')

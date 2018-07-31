@@ -46,7 +46,7 @@ class managed:
         # Start a connection
         try:
             await self.session.start(
-                transactional=True, isolation='read_committed',
+                isolation='read_committed',
                 readonly=False, deferrable=False
             )
             return self.session

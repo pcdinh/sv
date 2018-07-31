@@ -1,2 +1,2 @@
 # -*- coding: utf-8 -*-
-from apps.web import home
+from apps.web import home, errors
