@@ -85,6 +85,18 @@ async def test_connection(request: Request):
         connection: revopy.ds.postgresql.SessionManager = None
         async with managed(request.app.pg) as connection:
             ''':type : revopy.ds.postgresql.SessionManager'''
+            await connection.execute(
+                "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
+                 VALUES(%(user_id)s, %(first_name)s, %(last_name)s, %(source)s, %(status)s, %(created_time)s)",
+                {
+                    "user_id": 1,
+                    "first_name": "L1000",
+                    "last_name": "M1000",
+                    "source": 1,
+                    "status": 1,
+                    "created_time": datetime.datetime.utcnow()
+                }
+            )
             rs1 = await connection.fetch_one("SELECT user_id, first_name FROM users")
             rs2 = await connection.fetch_one(
                 "SELECT user_id, first_name FROM users WHERE user_id = %(user_id)s",

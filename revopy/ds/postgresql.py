@@ -226,9 +226,9 @@ class SessionManager:
         """
         if params:
             query, params = pyformat_to_native(query, params)
-            ret = await self.connection.fetch(query, *params)
+            ret = await self._execute_and_fetch(query, params, 1, timeout=self.timeout)
         else:
-            ret = await self.connection.fetch(query)
+            ret = await self._execute_and_fetch(query, None, 1, timeout=self.timeout)
         return [row[0] for row in ret]
 
     async def fetch_value(self, query: str, params: Dict=None) -> Union[Null, None, str, int]:
