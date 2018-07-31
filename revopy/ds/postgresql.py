@@ -27,7 +27,7 @@ def pyformat_to_native(query: str, params: Dict) -> Tuple[str, List]:
     return new_query, field_values
 
 
-def pyformat_in_list_to_native(query: str, params: List[Dict]) -> Tuple[str, List[Dict]]:
+def pyformat_in_list_to_native(query: str, params: List[Dict]) -> Tuple[str, List[List]]:
     """Rewrite SQL query formatted in pyformat to PostgreSQL native format
     E.x: INSERT INTO users (user_id, first_name) VALUES (%(user_id)s, %(first_name)s)
          [
