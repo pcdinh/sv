@@ -210,12 +210,12 @@ class SessionManager:
         """
         if params:
             query, params = pyformat_to_native(query, params)
-            ret = await self.connection.fetchrow(query, *params)
+            ret = await self._execute_and_fetch(query, params, 1, timeout=self.timeout)
         else:
-            ret = await self.connection.fetchrow(query)
-        if ret is None:
+            ret = await self._execute_and_fetch(query, None, 1, timeout=self.timeout)
+        if not ret:
             return {}
-        return dict(ret)
+        return dict(ret[0])
 
     async def fetch_column(self, query: str, params: Dict=None) -> List:
         """Fetch all possible values of the first column of rows, returning a list
@@ -467,7 +467,15 @@ class SessionManager:
         q = "DELETE FROM %s WHERE %s RETURNING %s" % (table, where_clause, return_field)
         return await self.execute_and_fetch(q, where)
 
-    async def _execute_and_fetch(self, query, args, limit, timeout, return_status=False):
+    async def _execute_and_fetch(self, query, args, limit, timeout, return_status=False) -> List:
+        """Execute a query and fetch found rows
+        :param query:
+        :param args:
+        :param limit:
+        :param timeout:
+        :param return_status:
+        :return: a list of asyncpg.Record
+        """
         with self.connection._stmt_exclusive_section:
             def bind_execute(stmt, timeout):
                 return self.connection._protocol.bind_execute(
