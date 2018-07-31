@@ -373,7 +373,6 @@ class SessionManager:
         """Insert many rows into a table using a single query
         :param str table:
         :param dict row_values:
-        :param str return_fields:
         :param int timeout:
         :return: a tuple (return_dict, affected_rows)
         """
