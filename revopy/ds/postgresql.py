@@ -136,7 +136,7 @@ def generate_bulk_insert_query(table: str, rows: List[Dict]) -> str:
     return "INSERT INTO %s (%s) VALUES (%s)" % (table, ','.join(fields), '),('.join(row_values))
 
 
-def generate_native_insert_query(table: str, row: Dict) -> Tuple[str, Dict]:
+def generate_native_insert_query(table: str, row: Dict) -> Tuple[str, List]:
     """Create an INSERT query using PostgreSQL's native bind format: $n
     :param str table:
     :param dict row:
@@ -275,7 +275,6 @@ class SessionManager:
             q = 'SELECT COUNT(1) AS row_count ' + query[query.index('FROM'):]
         except ValueError:
             raise UserWarning('Missing FROM in the provided query')
-        import sys
         if params:
             ret = await self.execute_and_fetch(q, params)
         else:
