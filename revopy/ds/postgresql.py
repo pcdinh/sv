@@ -345,14 +345,7 @@ class SessionManager:
         self.connection._check_open()
         if params:
             query, params = pyformat_to_native(query, params)
-        with self.connection._stmt_exclusive_section:
-            executor = lambda stmt, timeout: self.connection._protocol.bind_execute(
-                stmt, params or [], '', 0, return_status, timeout
-            )
-        timeout = self.connection._protocol._get_timeout(timeout)
-        # type : result: list(asyncpg.Record)
-        # type : _stmt: asyncpg.protocol.protocol.PreparedStatementState
-        result, _stmt = await self.connection._do_execute(query, executor, timeout)
+        result = await self._execute_and_fetch(query, params, 0, timeout=timeout, return_status=return_status)
         return [dict(item) for item in result]
 
     async def insert(self, table: str, row_values: Dict, return_fields: str=None,
@@ -479,3 +472,13 @@ class SessionManager:
                                      for field, v in where.items()])
         q = "DELETE FROM %s WHERE %s RETURNING %s" % (table, where_clause, return_field)
         return self.execute_and_fetch(q, where)
+
+    async def _execute_and_fetch(self, query, args, limit, timeout, return_status=False):
+        with self.connection._stmt_exclusive_section:
+            executor = lambda stmt, timeout: self.connection._protocol.bind_execute(
+                stmt, args or [], '', limit, return_status, timeout)
+            timeout = self.connection._protocol._get_timeout(timeout)
+            # type : result: list(asyncpg.Record)
+            # type : _stmt: asyncpg.protocol.protocol.PreparedStatementState
+            result, _stmt = await self.connection._do_execute(query, executor, timeout)
+        return result
