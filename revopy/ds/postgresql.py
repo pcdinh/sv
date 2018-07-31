@@ -453,7 +453,7 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return int(status.split()[-1])
 
-    def delete_and_fetch(self, table: str, where: Dict, return_field='*') -> List[Dict]:
+    async def delete_and_fetch(self, table: str, where: Dict, return_field='*') -> List[Dict]:
         """Delete and return deleted rows
         :param str table: Table name
         :param dict where:
@@ -465,7 +465,7 @@ class SessionManager:
         where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field)
                                      for field, v in where.items()])
         q = "DELETE FROM %s WHERE %s RETURNING %s" % (table, where_clause, return_field)
-        return self.execute_and_fetch(q, where)
+        return await self.execute_and_fetch(q, where)
 
     async def _execute_and_fetch(self, query, args, limit, timeout, return_status=False):
         with self.connection._stmt_exclusive_section:
