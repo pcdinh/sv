@@ -240,12 +240,12 @@ class SessionManager:
         """
         if params:
             query, params = pyformat_to_native(query, params)
-            ret = await self.connection.fetchval(query, *params)
+            ret = await self._execute_and_fetch(query, params, 1, timeout=self.timeout)
         else:
-            ret = await self.connection.fetchval(query)
+            ret = await self._execute_and_fetch(query, None, 1, timeout=self.timeout)
         if ret is None:
             return Null()
-        return ret
+        return ret[0][0]
 
     async def fetch_all(self, query: str, params: Dict=None) -> List[Dict]:
         """Fetches all (remaining) rows of a query result, returning a list
@@ -469,6 +469,7 @@ class SessionManager:
 
     async def _execute_and_fetch(self, query, args, limit, timeout, return_status=False) -> List:
         """Execute a query and fetch found rows
+
         :param query:
         :param args:
         :param limit:
