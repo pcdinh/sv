@@ -118,7 +118,6 @@ def generate_bulk_insert_query(table: str, rows: List[Dict]) -> str:
             (1, 'D1', 'D2'), (2, 'A1', 'A2');
     """
     fields = rows[0].keys()
-    all_fields = []  # field placeholders
     row_values = []
     for row in rows:
         new_row = []
