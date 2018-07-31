@@ -468,11 +468,13 @@ class SessionManager:
         return await self.execute_and_fetch(q, where)
 
     async def _execute_and_fetch(self, query, args, limit, timeout, return_status=False):
+        def bind_execute(stmt, timeout):
+            return self.connection._protocol.bind_execute(
+                stmt, args or [], '', limit, return_status, timeout
+            )
         with self.connection._stmt_exclusive_section:
-            executor = lambda stmt, timeout: self.connection._protocol.bind_execute(
-                stmt, args or [], '', limit, return_status, timeout)
             timeout = self.connection._protocol._get_timeout(timeout)
             # type : result: list(asyncpg.Record)
             # type : _stmt: asyncpg.protocol.protocol.PreparedStatementState
-            result, _stmt = await self.connection._do_execute(query, executor, timeout)
+            result, _stmt = await self.connection._do_execute(query, bind_execute, timeout)
         return result
