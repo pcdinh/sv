@@ -27,7 +27,7 @@ def pyformat_to_native(query: str, params: Dict) -> Tuple[str, Dict]:
     return new_query, field_values
 
 
-def pyformat_in_list_to_native(query: str, params: List[Dict]):
+def pyformat_in_list_to_native(query: str, params: List[Dict]) -> Tuple[str, List[Dict]]:
     """Rewrite SQL query formatted in pyformat to PostgreSQL native format
     E.x: INSERT INTO users (user_id, first_name) VALUES (%(user_id)s, %(first_name)s)
          [
@@ -159,8 +159,13 @@ def generate_native_insert_query(table: str, row: Dict) -> Tuple[str, Dict]:
 
 class SessionManager:
     """Provides manageability for a database session"""
+
     def __init__(self, pg_pool: asyncpg.pool.Pool, timeout=None):
-        self.pool = pg_pool
+        """Create an instance of SessionManager
+        :param asyncpg.pool.Pool pg_pool:
+        :param int timeout:
+        """
+        self.pool: asyncpg.pool.Pool = pg_pool
         self.connection: asyncpg.connection.Connection = None
         self.transaction: asyncpg.connection.transaction.Transaction = None
         self.timeout = timeout
