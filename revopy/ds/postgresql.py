@@ -8,7 +8,7 @@ from asyncpg import utils
 logger = logging.getLogger("app.postgresql")
 
 
-def pyformat_to_native(query: str, params: Dict) -> Tuple[str, Dict]:
+def pyformat_to_native(query: str, params: Dict) -> Tuple[str, List]:
     """Rewrite SQL query formatted in pyformat to PostgreSQL native format
     E.x: SELECT * FROM users WHERE user_id = %(user_id)s AND status = %(status)s AND country = %(country)s
          will be converted to
@@ -345,13 +345,11 @@ class SessionManager:
         result = await self._execute_and_fetch(query, params, 0, timeout=timeout, return_status=return_status)
         return [dict(item) for item in result]
 
-    async def insert(self, table: str, row_values: Dict, return_fields: str=None,
-                     check_placeholder: bool=False) -> Tuple[Dict, int]:
+    async def insert(self, table: str, row_values: Dict, return_fields: str=None) -> Tuple[Dict, int]:
         """Insert a row into a table
         :param table: Table name
         :param row_values: A dict of field name and its value
         :param return_fields: Field name to return
-        :param check_placeholder: bool
         :return: a tuple (return_dict, affected_rows)
         """
         query, params = generate_native_insert_query(table, row_values)
@@ -390,7 +388,7 @@ class SessionManager:
         """
         query = generate_bulk_insert_query(table, row_values)
         q = query + " RETURNING %s" % return_fields
-        return await self.execute_and_fetch(q)
+        return await self.execute_and_fetch(q, None, timeout=timeout)
 
     async def update_all(self, table: str, values: Dict) -> int:
         """Update all rows in a table
