@@ -366,8 +366,8 @@ class SessionManager:
     async def insert(self, table: str, row_values: Dict) -> int:
         """Insert a row into a table
 
-        :param table: Table name
-        :param row_values: A dict of field name and its value
+        :param str table: Table name
+        :param dict row_values: A dict of field name and its value
         :return: a number of affected rows
         """
         query, params = generate_native_insert_query(table, row_values)
@@ -378,10 +378,10 @@ class SessionManager:
     async def insert_and_fetch(self, table: str, row_values: Dict, return_fields: str) -> Dict:
         """Insert a row into a table and retrieve specific fields of affected rows
 
-        :param table: Table name
-        :param row_values: A dict of field name and its value
-        :param return_fields: Field name to return
-        :return: a tuple (return_dict, affected_rows)
+        :param str table: Table name
+        :param dict row_values: A dict of field name and its value
+        :param str return_fields: Field name to return
+        :return: a dictionary of field names and field values
         """
         query, params = generate_native_insert_query(table, row_values)
         if return_fields:
@@ -413,7 +413,7 @@ class SessionManager:
         :param dict row_values:
         :param str return_fields:
         :param int timeout:
-        :return: a tuple (return_dict, affected_rows)
+        :return: a list of specific fields of affected rows
         """
         query = generate_bulk_insert_query(table, row_values)
         q = query + " RETURNING %s" % return_fields
@@ -421,6 +421,7 @@ class SessionManager:
 
     async def update_all(self, table: str, values: Dict) -> int:
         """Update all rows in a table
+
         :param table: Table name
         :param values: A dict (field_name: value)
         :return: The number of affected rows
@@ -435,6 +436,7 @@ class SessionManager:
 
     async def update(self, table: str, values: Dict, where: Dict) -> int:
         """Update certain rows in a table
+
         :param table: Table name
         :param values: A dict (field_name: value)
         :param where: A dict (field_name: value)
@@ -457,6 +459,7 @@ class SessionManager:
 
     async def delete_all(self, table: str) -> int:
         """Delete all rows from a table
+
         :param str table: Table name
         :return The number of deleted rows
         """
@@ -467,6 +470,7 @@ class SessionManager:
 
     async def delete(self, table: str, where: Dict) -> int:
         """Delete all rows that match the provided condition
+
         :param str table: Table name
         :param dict where: A dict (field_name: value) indicates equality clause (=),
                           (field_name: tuple) indicates IN clause
@@ -484,6 +488,7 @@ class SessionManager:
 
     async def delete_and_fetch(self, table: str, where: Dict, return_field: str='*') -> List[Dict]:
         """Delete and return deleted rows
+
         :param str table: Table name
         :param dict where:
         :param str return_field:
