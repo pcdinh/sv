@@ -145,7 +145,18 @@ async def test_connection(request: Request):
                     "created_time": datetime.datetime.utcnow()
                 }
             )
-            rs10, count10 = await connection.insert(
+            rs10 = await connection.insert(
+                "users",
+                {
+                    "user_id": 3,
+                    "first_name": "Lionen",
+                    "last_name": "Messi",
+                    "source": 1,
+                    "status": 1,
+                    "created_time": datetime.datetime.utcnow()
+                }
+            )
+            rs11 = await connection.insert_and_fetch(
                 "users",
                 {
                     "user_id": 3,
@@ -155,9 +166,9 @@ async def test_connection(request: Request):
                     "status": 1,
                     "created_time": datetime.datetime.utcnow()
                 },
-                return_fields="user_id, first_name"
+                "user_id, first_name"
             )
-            rs11, count11 = await connection.insert(
+            rs12 = await connection.insert(
                 "users",
                 {
                     "user_id": 5,
@@ -168,13 +179,13 @@ async def test_connection(request: Request):
                     "created_time": datetime.datetime.utcnow()
                 }
             )
-            rs12 = await connection.execute_and_fetch(
+            rs13 = await connection.execute_and_fetch(
                 "SELECT user_id FROM users WHERE user_id = %(user_id)s",
                 {
                     "user_id": 5
                 }
             )
-            rs13 = await connection.execute_and_fetch(
+            rs14 = await connection.execute_and_fetch(
                 "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
                  VALUES(%(user_id)s, %(first_name)s, %(last_name)s, %(source)s, %(status)s, %(created_time)s) RETURNING user_id",
                 {
@@ -186,14 +197,14 @@ async def test_connection(request: Request):
                     "created_time": datetime.datetime.utcnow()
                 }
             )
-            rs14 = await connection.fetch_by_page(
+            rs15 = await connection.fetch_by_page(
                 "SELECT user_id FROM users WHERE user_id = %(user_id)s",
                 1, 2,
                 params={
                     "user_id": 5
                 }
             )
-            rs15 = await connection.update(
+            rs16 = await connection.update(
                 "users",
                 {
                     "first_name": "UpdatedName"
@@ -202,18 +213,18 @@ async def test_connection(request: Request):
                     "user_id": 5
                 }
             )
-            rs16 = await connection.update_all(
+            rs17 = await connection.update_all(
                 "users",
                 {
                     "first_name": "UpdatedName2"
                 }
             )
-            rs17 = await connection.fetch_all(
+            rs18 = await connection.fetch_all(
                 "SELECT user_id FROM users WHERE user_id = %(user_id)s",
                 {"user_id": 1}
             )
-            rs18 = await connection.delete_all("users")
-            rs19, count19 = await connection.insert(
+            rs19 = await connection.delete_all("users")
+            rs20 = await connection.insert(
                 "users",
                 {
                     "user_id": 1,
@@ -222,11 +233,10 @@ async def test_connection(request: Request):
                     "source": 1,
                     "status": 1,
                     "created_time": datetime.datetime.utcnow()
-                },
-                return_fields="user_id, first_name"
+                }
             )
-            rs20 = await connection.delete_all("users")
-            rs21, count21 = await connection.insert(
+            rs21 = await connection.delete_all("users")
+            rs22 = await connection.insert(
                 "users",
                 {
                     "user_id": 2,
@@ -235,16 +245,15 @@ async def test_connection(request: Request):
                     "source": 1,
                     "status": 1,
                     "created_time": datetime.datetime.utcnow()
-                },
-                return_fields="user_id, first_name"
+                }
             )
-            rs22 = await connection.delete(
+            rs23 = await connection.delete(
                 "users",
                 {
                     "user_id": 2
                 }
             )
-            rs23, count23 = await connection.insert(
+            rs24 = await connection.insert(
                 "users",
                 {
                     "user_id": 3,
@@ -253,20 +262,19 @@ async def test_connection(request: Request):
                     "source": 1,
                     "status": 1,
                     "created_time": datetime.datetime.utcnow()
-                },
-                return_fields="user_id, first_name"
+                }
             )
-            rs24 = await connection.delete_and_fetch(
+            rs25 = await connection.delete_and_fetch(
                 "users",
                 {
                     "user_id": 3
                 }
             )
-            rs25 = await connection.fetch_all(
+            rs26 = await connection.fetch_all(
                 "SELECT user_id FROM users WHERE user_id = %(user_id)s",
                 {"user_id": 3}
             )
-            rs26 = await connection.execute_many(
+            rs27 = await connection.execute_many(
                 "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
                  VALUES(%(user_id)s, %(first_name)s, %(last_name)s, %(source)s, %(status)s, %(created_time)s)",
                 [
@@ -288,16 +296,16 @@ async def test_connection(request: Request):
                     }
                 ]
             )
-            rs27 = await connection.fetch_all(
+            rs28 = await connection.fetch_all(
                 "SELECT user_id FROM users WHERE user_id = ANY(%(user_id)s)",
                 {"user_id": [3, 4]}
             )
-            rs28 = await connection.fetch_all(
+            rs29 = await connection.fetch_all(
                 "SELECT user_id FROM users WHERE first_name = ANY(%(first_name)s)",
                 {"first_name": ["F4", "F5"]}
             )
             await connection.delete_all("users")
-            rs29 = await connection.bulk_insert(
+            rs30 = await connection.bulk_insert(
                 "users",
                 [
                     {
@@ -320,11 +328,11 @@ async def test_connection(request: Request):
                     }
                 ]
             )
-            rs30 = await connection.fetch_all("SELECT user_id, first_name, last_name FROM users")
+            rs31 = await connection.fetch_all("SELECT user_id, first_name, last_name FROM users")
 
             await connection.delete_all("users")
-            rs31 = await connection.execute("CREATE SEQUENCE IF NOT EXISTS users_user_id;")
-            rs32 = await connection.bulk_insert_and_fetch(
+            rs32 = await connection.execute("CREATE SEQUENCE IF NOT EXISTS users_user_id;")
+            rs33 = await connection.bulk_insert_and_fetch(
                 "users",
                 [
                     {
@@ -359,8 +367,8 @@ async def test_connection(request: Request):
                     "rs7": rs7,
                     "rs8": rs8,
                     "rs9": rs9,
-                    "rs10": {"rs": rs10, "count": count10},
-                    "rs11": {"rs": rs11, "count": count11},
+                    "rs10": rs10,
+                    "rs11": rs11,
                     "rs12": {"rs": rs12},
                     "rs13": {"rs": rs13},
                     "rs14": {"rs": rs14},
@@ -370,7 +378,7 @@ async def test_connection(request: Request):
                     "rs18": {"rs": rs18},
                     "rs19": {"rs": rs19},
                     "rs20": rs20,
-                    "rs21": {"rs": rs21, "count": count21},
+                    "rs21": rs21,
                     "rs22": rs22,
                     "rs23": rs23,
                     "rs24": rs24,
@@ -381,7 +389,8 @@ async def test_connection(request: Request):
                     "rs29": rs29,
                     "rs30": rs30,
                     "rs31": rs31,
-                    "rs32": rs32
+                    "rs32": rs32,
+                    "rs33": rs33
                 }
             )
     except Exception as error:

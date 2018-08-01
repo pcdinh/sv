@@ -363,8 +363,21 @@ class SessionManager:
         result = await self._execute_and_fetch(query, params, limit, timeout=timeout, return_status=return_status)
         return [dict(item) for item in result]
 
-    async def insert(self, table: str, row_values: Dict, return_fields: str=None) -> Tuple[Dict, int]:
+    async def insert(self, table: str, row_values: Dict) -> int:
         """Insert a row into a table
+
+        :param table: Table name
+        :param row_values: A dict of field name and its value
+        :return: a number of affected rows
+        """
+        query, params = generate_native_insert_query(table, row_values)
+        self.connection._check_open()
+        _, status, _ = await self.connection._execute(query, params, 0, None, True)
+        return int(status.split()[-1])
+
+    async def insert_and_fetch(self, table: str, row_values: Dict, return_fields: str) -> Dict:
+        """Insert a row into a table and retrieve specific fields of affected rows
+
         :param table: Table name
         :param row_values: A dict of field name and its value
         :param return_fields: Field name to return
@@ -373,21 +386,18 @@ class SessionManager:
         query, params = generate_native_insert_query(table, row_values)
         if return_fields:
             query = query + " RETURNING %s" % return_fields
-        if return_fields:
-            ret = await self.connection.fetchrow(query, *params)
-            if not ret:
-                return {}, 0
-            return dict(ret), 1
-        self.connection._check_open()
-        _, status, _ = await self.connection._execute(query, params, 0, None, True)
-        return {}, int(status.split()[-1])
+        ret = await self._execute_and_fetch(query, params, 1, self.timeout)
+        if not ret:
+            return {}
+        return dict(ret[0])
 
     async def bulk_insert(self, table: str, row_values: List[Dict], timeout: int=None) -> int:
         """Insert many rows into a table using a single query
+
         :param str table:
         :param dict row_values:
         :param int timeout:
-        :return: a tuple (return_dict, affected_rows)
+        :return: a number of affected_rows
         """
         self.connection._check_open()
         query = generate_bulk_insert_query(table, row_values)
@@ -398,6 +408,7 @@ class SessionManager:
                                     timeout: int=None) -> List[Dict]:
         """Insert many rows into a table using a single query and return specific fields of newly inserted rows
         The method can be used to retrieve automatically generated field values such as primary keys
+
         :param str table:
         :param dict row_values:
         :param str return_fields:
