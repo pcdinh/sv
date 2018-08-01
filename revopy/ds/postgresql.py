@@ -471,7 +471,7 @@ class SessionManager:
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return int(status.split()[-1])
 
-    async def delete_and_fetch(self, table: str, where: Dict, return_field='*') -> List[Dict]:
+    async def delete_and_fetch(self, table: str, where: Dict, return_field: str='*') -> List[Dict]:
         """Delete and return deleted rows
         :param str table: Table name
         :param dict where:

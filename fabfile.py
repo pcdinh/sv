@@ -126,7 +126,7 @@ def _run_background(context: Context, command, out_file="/dev/null", err_file=No
 
 
 @task
-def deploy(context: Context):
+def deploy(context):
     """Execute deploy task
     Linux: fab2 -ssh-config=~/.ssh/config -H dev0 deploy
     Windows: fab2 --ssh-config=C:/Users/pcdinh/.ssh/config -H dev0 deploy
@@ -139,7 +139,7 @@ def deploy(context: Context):
         Port 22
         User pcdinh
         IdentityFile ~/.ssh/FileString_Stg.pem
-    :param context:
+    :param Context context:
     :return:
     """
     # context.config['env'] = {'PATH': r'D:\cygwin64\bin'}
