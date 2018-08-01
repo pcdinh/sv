@@ -163,13 +163,14 @@ def generate_native_insert_query(table: str, row: Dict) -> Tuple[str, List]:
 class SessionManager:
     """Provides manageability for a database session"""
 
-    def __init__(self, pg_pool: asyncpg.pool.Pool, timeout=None):
+    def __init__(self, pg_pool: 'asyncio.Future[asyncpg.pool.Pool]', timeout=None):
         """Create an instance of SessionManager
 
-        :param asyncpg.pool.Pool pg_pool:
+        :rtype: object
+        :param asyncio.Future pg_pool:
         :param int timeout:
         """
-        self.pool: asyncpg.pool.Pool = pg_pool
+        self.pool: 'asyncio.Future[asyncpg.pool.Pool]' = pg_pool
         self.connection: asyncpg.connection.Connection = None
         self.transaction: asyncpg.connection.transaction.Transaction = None
         self.timeout = timeout

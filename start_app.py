@@ -144,7 +144,7 @@ class Config:
         return self.dict[key]
 
     def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__, dict.__repr__(self))
+        return '<%s %s>' % (self.__class__.__name__, dict.__repr__(self.dict))
 
 
 @app.handle(Events.BEFORE_SERVER_START)
@@ -155,7 +155,6 @@ async def initialize_engine(current_app: Vibora):
     config.from_py_file('apps/config/settings.py')
     config.from_py_file('apps/config/settings_{}.py'.format(environ_name))
     app.components.add(config)
-    ''':type : asyncpg.connection.Connection'''
     pg_pool: asyncio.Future = await asyncpg.create_pool(
         current_app.components.get(Config).POSTGRESQL_DSN,
         max_inactive_connection_lifetime=60,
