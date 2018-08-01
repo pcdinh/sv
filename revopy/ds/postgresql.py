@@ -2,7 +2,7 @@ import asyncpg
 import logging
 import math
 from typing import Dict, List, Tuple, Union
-from . import Null, is_placeholder, is_null, Placeholder
+from . import Null, is_placeholder, Placeholder
 from asyncpg import utils
 
 logger = logging.getLogger("app.postgresql")
@@ -347,11 +347,12 @@ class SessionManager:
         query, params = pyformat_in_list_to_native(query, params)
         return await self.connection._executemany(query, params, timeout)
 
-    async def execute_and_fetch(self, query: str, params: Dict=None,
+    async def execute_and_fetch(self, query: str, params: Dict=None, limit:int=0,
                                 timeout: int=None, return_status: bool=False) -> List[Dict]:
         """Execute a query and get returned data
         :param str query:
         :param dict params:
+        :param int limit: Can be no limit (0) or limit to 1 row (1)
         :param int timeout:
         :param bool return_status:
         :return: a list of dictionaries
@@ -359,7 +360,7 @@ class SessionManager:
         self.connection._check_open()
         if params:
             query, params = pyformat_to_native(query, params)
-        result = await self._execute_and_fetch(query, params, 0, timeout=timeout, return_status=return_status)
+        result = await self._execute_and_fetch(query, params, limit, timeout=timeout, return_status=return_status)
         return [dict(item) for item in result]
 
     async def insert(self, table: str, row_values: Dict, return_fields: str=None) -> Tuple[Dict, int]:
@@ -484,14 +485,15 @@ class SessionManager:
         q = "DELETE FROM %s WHERE %s RETURNING %s" % (table, where_clause, return_field)
         return await self.execute_and_fetch(q, where)
 
-    async def _execute_and_fetch(self, query, args, limit, timeout, return_status=False) -> List:
-        """Execute a query and fetch found rows
+    async def _execute_and_fetch(self, query: str, args: Union[List, None],
+                                 limit: int, timeout: int, return_status: bool=False) -> List:
+        """Execute a query and fetch effected rows
 
-        :param query:
-        :param args:
-        :param limit:
-        :param timeout:
-        :param return_status:
+        :param str query:
+        :param list args:
+        :param int limit:
+        :param int timeout:
+        :param bool return_status:
         :return: a list of asyncpg.Record
         """
         with self.connection._stmt_exclusive_section:
