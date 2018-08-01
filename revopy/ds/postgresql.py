@@ -166,7 +166,7 @@ class SessionManager:
     def __init__(self, pg_pool: 'asyncio.Future[asyncpg.pool.Pool]', timeout=None):
         """Create an instance of SessionManager
 
-        :rtype: object
+        :rtype: SessionManager
         :param asyncio.Future pg_pool:
         :param int timeout:
         """
@@ -185,7 +185,8 @@ class SessionManager:
         :param str isolation:
         :param bool readonly:
         :param bool deferrable:
-        :return asyncpg.connection.Connection
+        :return an asyncpg's Connection
+        :rtype: asyncpg.connection.Connection
         """
         if self.connection:
             raise UserWarning("The use of initialize() caused leaked connection")
@@ -216,6 +217,7 @@ class SessionManager:
         :param str query:
         :param dict params:
         :return: dict
+        :rtype: dict
         """
         if params:
             query, params = pyformat_to_native(query, params)
@@ -233,6 +235,7 @@ class SessionManager:
         :param dict params:
         :return: list
                  An empty list is returned if there is no match rows
+        :rtype: list
         """
         if params:
             query, params = pyformat_to_native(query, params)
@@ -248,6 +251,7 @@ class SessionManager:
         :param dict params:
         :return: Null if there is no matching row,
                  int|str|None if there is a matching row
+        :rtype: Null|None|str|int
         """
         if params:
             query, params = pyformat_to_native(query, params)
@@ -263,7 +267,8 @@ class SessionManager:
 
         :param str query:
         :param dict params:
-        :return: list
+        :return: a list of dictionaries
+        :rtype: list
         """
         if params:
             query, params = pyformat_to_native(query, params)
@@ -490,9 +495,9 @@ class SessionManager:
         :return: a list of asyncpg.Record
         """
         with self.connection._stmt_exclusive_section:
-            def bind_execute(stmt, timeout):
+            def bind_execute(stmt, timeout_):
                 return self.connection._protocol.bind_execute(
-                    stmt, args or [], '', limit, return_status, timeout
+                    stmt, args or [], '', limit, return_status, timeout_
                 )
             timeout = self.connection._protocol._get_timeout(timeout)
             # type : result: list(asyncpg.Record)
