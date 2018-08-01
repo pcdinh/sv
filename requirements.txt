@@ -1,3 +1,6 @@
 vibora>=0.0.6
 asyncpg>=0.17.0
 python-rapidjson
+invoke
+fabric2
+patchwork

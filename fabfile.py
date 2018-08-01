@@ -69,7 +69,7 @@ def get_project_path():
     return program.collection.loaded_from
 
 
-def synchronize_code(context):
+def synchronize_code(context: Context):
     import os
     import sys
     # Path /cygdrive/d/cygwin64/bin/rsync
@@ -100,7 +100,7 @@ def synchronize_code(context):
         )
 
 
-def start_server(context):
+def start_server(context: Context):
     """Start API Server processes"""
     # ensure that live server is killed first
     command = "python3 /home/pcdinh/code/sv/server.py -e dev1 -w 1 api_server"
@@ -113,12 +113,12 @@ def start_server(context):
     )
 
 
-def stop_server(context):
+def stop_server(context: Context):
     """Stop API Server processes"""
     context.run("kill $(pgrep -f api_server | grep -v ^$$\$)", warn=True)
 
 
-def _run_background(context, command, out_file="/dev/null", err_file=None, shell="/bin/bash", pty=False):
+def _run_background(context: Context, command, out_file="/dev/null", err_file=None, shell="/bin/bash", pty=False):
     # Re: nohup {} >{} 2>{} </dev/null &
     cmd = 'nohup {} >{} 2>{} &'.format(command, out_file, err_file or '&1')
     print("Running: {}".format(cmd))
@@ -126,7 +126,7 @@ def _run_background(context, command, out_file="/dev/null", err_file=None, shell
 
 
 @task
-def deploy(context):
+def deploy(context: Context):
     """Execute deploy task
     Linux: fab2 -ssh-config=~/.ssh/config -H dev0 deploy
     Windows: fab2 --ssh-config=C:/Users/pcdinh/.ssh/config -H dev0 deploy

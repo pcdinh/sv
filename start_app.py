@@ -49,7 +49,6 @@ class managed:
                 isolation='read_committed',
                 readonly=False, deferrable=False
             )
-            return self.session
         except BaseException as e:
             logger.exception("Error when establishing a connection")
             raise e
@@ -61,6 +60,7 @@ class managed:
             logger.exception("Error when starting a transaction")
             await self.session.close()
             raise e
+        return self.session
 
     async def __aexit__(self, exc_type, exc, tb):
         try:
