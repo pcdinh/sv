@@ -535,10 +535,8 @@ class SessionManager:
         if not where:
             raise UserWarning('Inappropriate use of delete() without WHERE clause. Use delete_all() instead')
         self.connection._check_open()
-        where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field)
-                                     for field, v in where.items()])
-        query = "DELETE FROM %s WHERE %s" % (table, where_clause)
-        query, params = pyformat_query_to_native(query, where)
+        where_clause, params = _generate_where_clause(where)
+        query = "DELETE FROM %s %s" % (table, where_clause)
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return int(status.split()[-1])
 
@@ -552,10 +550,10 @@ class SessionManager:
         """
         if not where:
             raise UserWarning('Inappropriate use of delete_and_fetch() without WHERE clause. Use delete_all() instead')
-        where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field)
-                                     for field, v in where.items()])
-        q = "DELETE FROM %s WHERE %s RETURNING %s" % (table, where_clause, return_field)
-        return await self.execute_and_fetch(q, where)
+        where_clause, params = _generate_where_clause(where)
+        query = "DELETE FROM %s %s RETURNING %s" % (table, where_clause, return_field)
+        result = await self._execute_and_fetch(query, params, 0, self.timeout, return_status=False)
+        return [dict(item) for item in result]
 
     async def _execute_and_fetch(self, query: str, args: Union[List, None],
                                  limit: int, timeout: int, return_status: bool=False) -> List:
