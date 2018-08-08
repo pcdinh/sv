@@ -11,7 +11,12 @@ import logging
 from contextlib import contextmanager
 from revopy.ds.postgresql import SessionManager
 
+LOGGER_FORMAT = '%(asctime)s %(message)s'
 logger = logging.getLogger("app")
+logging.basicConfig(format=LOGGER_FORMAT, datefmt='[%H:%M:%S]')
+log = logging.getLogger()
+log.setLevel(logging.INFO)
+
 app = Vibora()
 
 

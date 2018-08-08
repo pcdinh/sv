@@ -8,7 +8,7 @@ from asyncpg import utils
 logger = logging.getLogger("app.postgresql")
 
 
-def pyformat_to_native(query: str, params: Dict) -> Tuple[str, List]:
+def pyformat_query_to_native(query: str, params: Dict) -> Tuple[str, List]:
     """Rewrite SQL query formatted in pyformat to PostgreSQL native format
     E.x: SELECT * FROM users WHERE user_id = %(user_id)s AND status = %(status)s AND country = %(country)s
          will be converted to
@@ -160,6 +160,70 @@ def generate_native_insert_query(table: str, row: Dict) -> Tuple[str, List]:
     return "INSERT INTO %s (%s) VALUES (%s)" % (table, ','.join(fields), ','.join(placeholders)), params
 
 
+def generate_native_update_query(table: str, row: Dict, where_clause: Dict) -> Tuple[str, List]:
+    """Create an UPDATE query using PostgreSQL's native bind format: $n
+
+    :param str table:
+    :param dict row:
+    :param dict where_clause:
+    :return: a tuple (str, dict)
+    """
+    field_names, placeholders, params, next_position = quote_fields(row)
+    set_phrases = []
+    for idx, field_name in enumerate(field_names):
+        set_phrases.append("%s = %s" % (field_name, placeholders[idx]))
+    if where_clause:
+        where_, where_params = _generate_where_clause(where_clause, next_position)
+        params.extend(where_params)
+        return "UPDATE %s SET %s %s" % (
+            table, ', '.join(set_phrases), where_
+        ), params
+    return "UPDATE %s SET %s" % (table, ','.join(field_names), ','.join(placeholders)), params
+
+
+def _generate_where_clause(condition: Dict, start_counter=1) -> Tuple[str, List]:
+    """
+
+    :param dict condition:
+    :param int start_counter:
+    :return:
+    """
+    field_names, placeholders, params, next_position = quote_fields(condition, start_counter)
+    where_clause = []
+    for idx, field_name in enumerate(field_names):
+        where_clause.append(
+            "%s %s" % (
+                field_name,
+                "= %s" % placeholders[idx]
+                if not isinstance(placeholders[idx], list) else "= ANY(%s)" % placeholders[idx]
+            )
+        )
+    return "WHERE " + " AND ".join(where_clause), params
+
+
+def quote_fields(fields: Dict, start_counter=1) -> Tuple[List, List, List, int]:
+    """Given a mapping between field names and their values, return a tuple of field names, list of $n placeholders
+    and list of field values
+
+    :param dict fields:
+    :param int start_counter:
+    :return:
+    :rtype: tuple
+    """
+    field_names = fields.keys()  # list of field names
+    placeholders = []  # list of $n placeholders: $1, $2, $3
+    next_position = start_counter  # set up internal counter for positional parameters: $n
+    params = []  # List of field values
+    for field_name, value in fields.items():
+        if is_placeholder(value):
+            placeholders.append(quote_placeholder(value))
+        else:
+            placeholders.append("$%s" % next_position)
+            params.append(value)
+            next_position += 1
+    return field_names, placeholders, params, next_position
+
+
 class SessionManager:
     """Provides manageability for a database session"""
 
@@ -220,7 +284,7 @@ class SessionManager:
         :rtype: dict
         """
         if params:
-            query, params = pyformat_to_native(query, params)
+            query, params = pyformat_query_to_native(query, params)
             ret = await self._execute_and_fetch(query, params, 1, timeout=self.timeout)
         else:
             ret = await self._execute_and_fetch(query, None, 1, timeout=self.timeout)
@@ -238,7 +302,7 @@ class SessionManager:
         :rtype: list
         """
         if params:
-            query, params = pyformat_to_native(query, params)
+            query, params = pyformat_query_to_native(query, params)
             ret = await self._execute_and_fetch(query, params, 1, timeout=self.timeout)
         else:
             ret = await self._execute_and_fetch(query, None, 1, timeout=self.timeout)
@@ -254,7 +318,7 @@ class SessionManager:
         :rtype: Null|None|str|int
         """
         if params:
-            query, params = pyformat_to_native(query, params)
+            query, params = pyformat_query_to_native(query, params)
             ret = await self._execute_and_fetch(query, params, 1, timeout=self.timeout)
         else:
             ret = await self._execute_and_fetch(query, None, 1, timeout=self.timeout)
@@ -271,7 +335,7 @@ class SessionManager:
         :rtype: list
         """
         if params:
-            query, params = pyformat_to_native(query, params)
+            query, params = pyformat_query_to_native(query, params)
             ret = await self._execute_and_fetch(query, params, 0, timeout=self.timeout)
         else:
             ret = await self._execute_and_fetch(query, None, 0, timeout=self.timeout)
@@ -326,7 +390,7 @@ class SessionManager:
             #                INSERT 0 1
             status = await self.connection._protocol.query(query, timeout)
         else:
-            query, params = pyformat_to_native(query, params)
+            query, params = pyformat_query_to_native(query, params)
             _, status, _ = await self.connection._execute(query, params, 0, timeout, True)
         parts = status.split()
         if parts[0] in ("DELETE", "INSERT", "UPDATE"):
@@ -359,7 +423,7 @@ class SessionManager:
         """
         self.connection._check_open()
         if params:
-            query, params = pyformat_to_native(query, params)
+            query, params = pyformat_query_to_native(query, params)
         result = await self._execute_and_fetch(query, params, limit, timeout=timeout, return_status=return_status)
         return [dict(item) for item in result]
 
@@ -430,7 +494,7 @@ class SessionManager:
         fields = values.keys()
         update_fields = ', '.join([f'{field} = %({field})s' for field in fields])
         q = f"UPDATE {table} SET {update_fields}"
-        query, params = pyformat_to_native(q, values)
+        query, params = pyformat_query_to_native(q, values)
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return int(status.split()[-1])
 
@@ -445,16 +509,8 @@ class SessionManager:
         if not where:
             raise UserWarning('Inappropriate use of update() without WHERE clause. Use update_all() instead')
         self.connection._check_open()
-        fields = values.keys()
-        # field_name = %(field_name_v)s (avoid conflicts with WHERE values)
-        update_fields = ', '.join(['%s = %%(%s_v)s' % (field, field) for field in fields])
-        where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field)
-                                     for field, v in where.items()])
-        q = "UPDATE %s SET %s WHERE %s" % (table, update_fields, where_clause)
-        values = dict([(k + '_v', v) for k, v in values.items()])
-        values.update(where)
-        query, params = pyformat_to_native(q, values)
-        _, status, _ = await self.connection._execute(query, params, 0, None, True)
+        update_query, params = generate_native_update_query(table, values, where)
+        _, status, _ = await self.connection._execute(update_query, params, 0, None, True)
         return int(status.split()[-1])
 
     async def delete_all(self, table: str) -> int:
@@ -482,7 +538,7 @@ class SessionManager:
         where_clause = " AND ".join(['%s %s %%(%s)s' % (field, ' IN ' if isinstance(v, tuple) else '=', field)
                                      for field, v in where.items()])
         query = "DELETE FROM %s WHERE %s" % (table, where_clause)
-        query, params = pyformat_to_native(query, where)
+        query, params = pyformat_query_to_native(query, where)
         _, status, _ = await self.connection._execute(query, params, 0, None, True)
         return int(status.split()[-1])
 
