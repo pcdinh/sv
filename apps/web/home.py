@@ -5,7 +5,9 @@ from vibora import Request, Response
 import revopy
 from revopy.ds.postgresql import SessionManager, generate_native_update_query
 from revopy.helpers.debug_utils import get_exception_details
-from start_app import app, managed, Config
+from start_app import app
+from revopy import Config
+from revopy.ds.manager import managed
 from revopy.helpers.response_utils import JsonResponse, WebResponse
 from revopy.ds import is_null, Placeholder
 

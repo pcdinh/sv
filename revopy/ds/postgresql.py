@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import asyncpg
 import logging
 import math
@@ -5,7 +7,7 @@ from typing import Dict, List, Tuple, Union
 from . import Null, is_placeholder, Placeholder
 from asyncpg import utils
 
-logger = logging.getLogger("app.postgresql")
+logger = logging.getLogger("revopy.ds.postgresql")
 
 
 def pyformat_query_to_native(query: str, params: Dict) -> Tuple[str, List]:
