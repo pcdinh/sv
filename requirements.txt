@@ -1,4 +1,4 @@
-vibora>=0.0.6
+vibora==0.0.7
 asyncpg>=0.17.0
 python-rapidjson
 invoke

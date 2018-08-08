@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from vibora import Vibora
 from vibora.hooks import Events
 import os
@@ -24,4 +25,3 @@ async def initialize_engine(current_app: Vibora):
         'apps/config/settings.py',
         'apps/config/settings_{}.py'
     )
-

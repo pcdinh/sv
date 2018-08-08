@@ -76,21 +76,20 @@ class Config:
 
 
 async def initialize_app(app: Vibora, base_path: str,
-                         default_environ,
-                         default_settings_file,
-                         environment_settings_file):
+                         default_environ: str,
+                         default_settings_file: str,
+                         environment_settings_file: str):
     """
 
-    :param app:
-    :param base_path:
-    :param default_environ:
-    :param default_settings_file:
-    :param environment_settings_file:
+    :param Vibora app:
+    :param str base_path:
+    :param str default_environ:
+    :param str default_settings_file:
+    :param str environment_settings_file:
     :return:
     """
-    from revopy.ds.postgresql import SessionManager
-    # Registering the config instance.
     environ_name = os.environ.get("ENV_NAME", default_environ)
+    # Registering the config instance
     config = Config(base_path)
     config.from_py_file(default_settings_file)
     config.from_py_file(environment_settings_file.format(environ_name))
@@ -102,4 +101,5 @@ async def initialize_app(app: Vibora, base_path: str,
         max_size=config.POSTGRESQL_POOL[1],
         loop=app.loop
     )
+    from revopy.ds.postgresql import SessionManager
     app.pg: SessionManager = SessionManager(pg_pool)
