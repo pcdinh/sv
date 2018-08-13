@@ -21,6 +21,8 @@ import errno
 import asyncpg
 from vibora import Vibora
 
+__version__ = '0.0.1'
+
 
 class Config:
     """Configuration loader
