@@ -36,14 +36,13 @@ def extract_exception_plus():
             # error we don't want.
             try:
                 strx += str(value)
-            except:
+            except Exception:
                 strx += "<ERROR WHILE PRINTING VALUE>, "
             lines.append(strx)
     return lines
 
 
 def get_exception_details():
-    import inspect
     from traceback import walk_tb, StackSummary, FrameSummary
     from time import strftime
     cla, exc, exc_traceback = sys.exc_info()

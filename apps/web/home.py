@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
+
+import logging
 from vibora import Route
 from vibora import Request, Response
 
-import revopy
-from revopy.ds.postgresql import SessionManager, generate_native_update_query
-from revopy.helpers.debug_utils import get_exception_details
 from start_app import app
+import revopy
+from revopy.ds.postgresql import SessionManager
+from revopy.helpers.debug_utils import get_exception_details
 from revopy import Config
 from revopy.ds.manager import managed
 from revopy.helpers.response_utils import JsonResponse, WebResponse
 from revopy.ds import is_null, Placeholder
+
+logger = logging.getLogger("app.home")
 
 
 @app.route('/')
@@ -359,6 +363,73 @@ async def test_connection(request: Request):
                 ],
                 return_fields="user_id"
             )
+            from datetime import timedelta
+            from revopy.ds.postgresql import generate_select
+            from revopy.ds import SORT_ASC, SORT_DESC
+            rs34 = generate_select(
+                "users", ("user_id", "first_name", "last_name", "status"),
+                (
+                    ("status", 1),
+                    ("first_name", "Định")
+                ),
+                ("last_name"), None, (("user_id", SORT_ASC), ("first_name", SORT_DESC))
+            )
+            now = datetime.datetime.utcnow()
+            two_days_before = now - timedelta(days=2)
+            rs35 = generate_select(
+                # table
+                "users",
+                # columns
+                ("user_id", ),
+                # where
+                (
+                    ("first_name", "Định"),
+                    ("last_name", "Định", "<>"),
+                    ("status", (0, 1), "not in"),
+                    ("status", (3, 4), "in"),
+                    ("created_time", (now, two_days_before), "between"),
+                    ("status", 4, "contain"),
+                    ("status", 8, "not contain"),
+                    ("status", 5, "overlap"),
+                    ("status", 10, "not overlap"),
+                    ("last_name", "Định Phạm", "contain"),
+                    ("last_name", "Định Phạm", "overlap"),
+                    ("last_name", ("Định Phạm", "Gì cũng được"), "overlap"),
+                ),
+                # group by
+                ("user_id", "first_name"),
+                # group filter
+                None,
+                # order by
+                (("user_id", SORT_ASC), ("first_name", SORT_DESC))
+            )
+            rs36 = await connection.find(
+                # table
+                "users",
+                # columns
+                ("user_id", ),
+                # where
+                (
+                    ("first_name", "Định"),
+                    ("last_name", "Định", "<>"),
+                    ("status", (0, 1), "not in"),
+                    ("status", (3, 4), "in"),
+                    ("created_time", (now, two_days_before), "between"),
+                    ("status", 4, "contain"),
+                    ("status", 8, "not contain"),
+                    ("status", 5, "overlap"),
+                    ("status", 10, "not overlap"),
+                    ("last_name", "Định Phạm", "contain"),
+                    ("last_name", "Định Phạm", "overlap"),
+                    ("last_name", ("Định Phạm", "Gì cũng được"), "overlap"),
+                ),
+                # group by
+                ("user_id", "first_name"),
+                # group filter
+                None,
+                # order by
+                (("user_id", SORT_ASC), ("first_name", SORT_DESC))
+            )
             return JsonResponse(
                 {
                     "rs1": rs1,
@@ -393,7 +464,10 @@ async def test_connection(request: Request):
                     "rs30": rs30,
                     "rs31": rs31,
                     "rs32": rs32,
-                    "rs33": rs33
+                    "rs33": rs33,
+                    "rs34": rs34,
+                    "rs35": rs35,
+                    "rs36": rs36
                 }
             )
     except Exception as error:
@@ -414,5 +488,8 @@ async def test_connection(request: Request):
 
 
 @app.route('/product/<product_id>')
-async def show_product(product_id: int):
-    return WebResponse(f'Chosen product: {product_id}')
+async def show_product(product_id: int, request: Request):
+    logger.info("Testing REST route")
+    config = request.app.components.get(Config)
+    debug_mode = config.DEBUG
+    return WebResponse(f'Chosen product: {product_id}. Debug: {debug_mode}')

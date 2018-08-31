@@ -1,5 +1,23 @@
 # -*- coding: utf-8 -*-
 
+SORT_ASC = "ASC"
+SORT_DESC = "DESC"
+
+WHERE_GREATER = '>'
+WHERE_GREATER_EQUAL = '>='
+WHERE_EQUAL = '='
+WHERE_LESS = '<'
+WHERE_LESS_EQUAL = '<='
+WHERE_NOT = '<>'
+WHERE_BETWEEN = 'between'
+WHERE_IN = 'in'
+WHERE_NOT_IN = 'not in'
+WHERE_CONTAIN = 'contain'  # https://www.postgresql.org/docs/9.3/static/functions-range.html
+WHERE_NOT_CONTAIN = 'not contain'
+WHERE_OVERLAP = "overlap"
+WHERE_NOT_OVERLAP = "not overlap"
+WHERE_OR = 'or'
+
 
 class Null:
     """Used in `~revopy.ds` to make difference with

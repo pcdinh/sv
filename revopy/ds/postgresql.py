@@ -4,7 +4,8 @@ import asyncpg
 import logging
 import math
 from typing import Dict, List, Tuple, Union
-from . import Null, is_placeholder, Placeholder
+
+from . import Null, is_placeholder, Placeholder, WHERE_NOT_IN, WHERE_IN, WHERE_BETWEEN
 from asyncpg import utils
 
 logger = logging.getLogger("revopy.ds.postgresql")
@@ -80,17 +81,21 @@ def quote(field_value) -> str:
     return utils._quote_literal(str(field_value))
 
 
-def quote_array(values) -> str:
+def quote_array(values, wrap=True) -> str:
     """Convert Python value into string that is compatible with PostgreSQL's query
     first_name = "Name 01" => 'Name 01'
     this_date = datetime.datetime.now() => '2018-07-30 11:54:25.161946'
     this_date = datetime.datetime.now(datetime.timezone.utc) => '2018-07-30 05:12:30.279286+00:00'
     See: https://paquier.xyz/postgresql-2/manipulating-arrays-in-postgresql/
 
-    :param values:
+    :param list values:
+    :param bool wrap:
     :return:
     """
-    ret = "'{%s}'"
+    if wrap:
+        ret = "'{%s}'"
+    else:
+        ret = "%s"
     quoted_values = []
     for v in values:
         quoted_values.append(quote(v))
@@ -203,6 +208,135 @@ def _generate_where_clause(condition: Dict, start_counter=1) -> Tuple[str, List]
     return "WHERE " + " AND ".join(where_clause), params
 
 
+def generate_select(table: str, columns: Tuple[str], where: Union[Tuple[Tuple], None],
+                    group_by: Union[Tuple[str], None], group_filter: Union[Dict, None], order_by: Union[Dict, None]):
+    """Generate SELECT query
+
+    :param str table:
+    :param tuple columns:
+    :param tuple where:
+           A list of conditions. E.x:
+           (
+             ("field_name", <value>), -- field_name = <value>
+             ("field_name", <value>, "="), -- field_name = <value>
+             ("field_name1", <value>, "or", "field_name2", <value2>), -- field_name1 = <value1> OR field_name2 = <value2>
+             ("field_name", <value>, ">"), -- field_name > <value>
+             ("field_name", <value>, "<="),
+             ("field_name", <value>, "<>"), -- field_name >< <value>
+             ("field_name", <value>, "!="), -- field_name != <value>
+             ("field_name", (<value1>, <value2>), "in"), -- field_name = ANY(<value1>, <value2>)
+             ("field_name", <value>, "nin"), -- field_name != ALL(<value>)
+             ("field_name", (<value1>, <value2>), "bw"), -- field_name BETWEEN <value1> AND <value2>
+           )
+    :param tuple group_by:
+           List of fields to group. E.x: ["<field_name1>", "<field_name2>"]
+    :param tuple group_filter:
+    :param dict order_by:
+    :return:
+    """
+    query = ["SELECT", ", ".join(columns), "FROM", table]
+    if where:
+        where_clause = []
+        for cond in where:
+            try:
+                op = cond[2]
+                simple_ops = {
+                    "=": 1,
+                    ">": 2,
+                    ">=": 3,
+                    "<": 4,
+                    "<=": 5,
+                    "<>": 6,
+                    "!=": 7,
+                    "in": 8,
+                    "not in": 9,
+                    "between": 10,
+                    "contain": 11,
+                    "not contain": 12,
+                    "overlap": 13,
+                    "not overlap": 14
+                }
+                try:
+                    op_position = simple_ops[op]
+                except IndexError:
+                    raise UserWarning("Bad operation: %s", op)
+                if op_position < 8:
+                    where_clause.append(
+                        u"%s %s %s" % (
+                            cond[0], op, quote(cond[1])
+                        )
+                    )
+                elif op_position < 9:
+                    where_clause.append(
+                        u"%s = ANY(%s)" % (
+                            cond[0], quote_array(cond[1])
+                        )
+                    )
+                elif op_position < 10:
+                    where_clause.append(
+                        u"%s != ALL(%s)" % (
+                            cond[0], quote_array(cond[1])
+                        )
+                    )
+                elif op_position < 11:
+                    where_clause.append(
+                        u"%s BETWEEN %s AND %s" % (
+                            cond[0], quote(cond[1][0]), quote(cond[1][1])
+                        )
+                    )
+                elif op_position < 12:
+                    where_clause.append(
+                        u"%s @> %s" % (
+                            cond[0], quote(cond[1])  # applicable for array field
+                        )
+                    )
+                elif op_position < 13:
+                    where_clause.append(
+                        u"NOT (%s @> %s)" % (
+                            cond[0], quote(cond[1])  # applicable for array field
+                        )
+                    )
+                elif op_position < 14:
+                    if isinstance(cond[1], tuple):
+                        where_clause.append(
+                            u"%s && ARRAY[%s]" % (
+                                cond[0], quote_array(cond[1], wrap=False)  # applicable for array field
+                            )
+                        )
+                    else:
+                        where_clause.append(
+                            u"%s && ARRAY[%s]" % (
+                                cond[0], quote(cond[1])  # applicable for array field
+                            )
+                        )
+                else:
+                    if isinstance(cond[1], tuple):
+                        where_clause.append(
+                            u"NOT (%s && ARRAY[%s])" % (
+                                cond[0], quote_array(cond[1], wrap=False)  # applicable for array field
+                            )
+                        )
+                    else:
+                        where_clause.append(
+                            u"NOT (%s && ARRAY[%s])" % (
+                                cond[0], quote(cond[1])  # applicable for array field
+                            )
+                        )
+            except IndexError:
+                # default op: = (equal)
+                where_clause.append(
+                    u"%s = %s" % (
+                        cond[0], quote(cond[1])
+                    )
+                )
+        query.extend(("WHERE", " AND ".join(where_clause)))
+    if group_by:
+        query.append("GROUP BY %s" % ", ".join(group_by))
+    if order_by:
+        query.append("ORDER BY %s" % ", ".join(["%s %s" % (field_info[0], field_info[1]) for field_info in order_by]))
+    return " ".join(query)
+
+
 def quote_fields(fields: Dict, start_counter=1) -> Tuple[List, List, List, int]:
     """Given a mapping between field names and their values, return a tuple of field names, list of $n placeholders
     and list of field values
@@ -223,7 +357,7 @@ def quote_fields(fields: Dict, start_counter=1) -> Tuple[List, List, List, int]:
             placeholders.append("$%s" % next_position)
             params.append(value)
             next_position += 1
-    return field_names, placeholders, params, next_position
+    return list(field_names), placeholders, params, next_position
 
 
 class SessionManager:
@@ -578,3 +712,20 @@ class SessionManager:
             # type : _stmt: asyncpg.protocol.protocol.PreparedStatementState
             result, _stmt = await self.connection._do_execute(query, bind_execute, timeout)
         return result
+
+    async def find(self, table: str, columns: List[str], where: Union[List, None],
+                   group_by: Union[List[str], None], group_filter: Union[Dict, None], order_by: Union[Dict, None]):
+        """Fetch all rows of a query result, returning a list
+
+        :param str table:
+        :param list columns:
+        :param dict where:
+        :param list group_by:
+        :param dict group_filter:
+        :param dict order_by:
+        :return: a list of dictionaries
+        :rtype: list
+        """
+        query = generate_select(table, columns, None, group_by, group_filter, order_by)
+        ret = await self._execute_and_fetch(query, None, 0, timeout=self.timeout)
+        return [dict(row) for row in ret]
