@@ -400,6 +400,7 @@ async def test_connection(request: Request):
                     ("last_name", "Định Phạm", "contain"),
                     ("last_name", "Định Phạm", "overlap"),
                     ("last_name", ("Định Phạm", "Gì cũng được"), "overlap"),
+                    ("last_name", "%nh", "like"),
                 ),
                 # group by
                 ("user_id", "first_name"),

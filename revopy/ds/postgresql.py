@@ -234,7 +234,7 @@ def _generate_filter(field: str, value: Union[str, Tuple], op: Union[str, None])
         "not contain": 12,
         "overlap": 13,
         "not overlap": 14,
-        "or": 15
+        "like": 15
     }
     try:
         op_position = simple_ops[op]
@@ -268,10 +268,8 @@ def _generate_filter(field: str, value: Union[str, Tuple], op: Union[str, None])
             quoted = quote(value)
         return u"NOT (%s && ARRAY[%s])" % (field, quoted)
     else:
-        # applicable for array field
-        if isinstance(value, tuple):
-            return u"NOT (%s && ARRAY[%s])" % (field, quote_array(value, wrap=False))
-        return u"NOT (%s && ARRAY[%s])" % (field, quote(value))
+        # LIKE
+        return u"%s LIKE %s)" % (field, quote(value))
 
 
 def generate_select(table: str, columns: Tuple[str], where: Union[Tuple[Tuple], None],
