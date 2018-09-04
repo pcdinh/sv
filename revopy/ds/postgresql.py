@@ -273,8 +273,8 @@ def _generate_filter(field: str, value: Union[str, Tuple], op: Union[str, None])
 
 
 def generate_select(table: str, columns: Tuple[str], where: Union[Tuple[Tuple], None],
-                            group_by: Union[Tuple[str], None], group_filter: Union[Dict, None],
-                            order_by: Union[Dict, None]):
+                    group_by: Union[Tuple[str], None], group_filter: Union[Dict, None],
+                    order_by: Union[Dict, None]):
     """Generate dynamic SELECT query
 
     :param str table:
