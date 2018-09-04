@@ -17,6 +17,7 @@ WHERE_NOT_CONTAIN = 'not contain'
 WHERE_OVERLAP = "overlap"
 WHERE_NOT_OVERLAP = "not overlap"
 WHERE_OR = 'or'
+WHERE_LIKE = 'like'
 
 
 class Null:

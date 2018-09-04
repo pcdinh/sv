@@ -208,25 +208,101 @@ def _generate_where_clause(condition: Dict, start_counter=1) -> Tuple[str, List]
     return "WHERE " + " AND ".join(where_clause), params
 
 
+def _generate_filter(field: str, value: Union[str, Tuple], op: Union[str, None]):
+    """
+
+    :param field:
+    :param value:
+    :param op:
+    :return:
+    """
+
+    and_list = []
+    op = op or "="  # op can be None (default value)
+    simple_ops = {
+        "=": 1,
+        ">": 2,
+        ">=": 3,
+        "<": 4,
+        "<=": 5,
+        "<>": 6,
+        "!=": 7,
+        "in": 8,
+        "not in": 9,
+        "between": 10,
+        "contain": 11,
+        "not contain": 12,
+        "overlap": 13,
+        "not overlap": 14,
+        "or": 15
+    }
+    try:
+        op_position = simple_ops[op]
+    except IndexError:
+        raise UserWarning("Bad operation: %s", op)
+    if op_position < 8:
+        return u"%s %s %s" % (field, op, quote(value))
+    if op_position < 9:
+        return u"%s = ANY(%s)" % (field, quote_array(value))
+    if op_position < 10:
+        return u"%s != ALL(%s)" % (field, quote_array(value))
+    if op_position < 11:
+        return u"%s BETWEEN %s AND %s" % (field, quote(value[0]), quote(value[1]))
+    if op_position < 12:
+        # applicable for array field
+        return u"%s @> %s" % (field, quote(value))
+    if op_position < 13:
+        # applicable for array field
+        return u"NOT (%s @> %s)" % (field, quote(value))
+    if op_position < 14:
+        if isinstance(value, tuple):
+            quoted = quote_array(value, wrap=False)
+        else:
+            quoted = quote(value)
+        # applicable for array field
+        return u"%s && ARRAY[%s]" % (field, quoted)
+    if op_position < 15:
+        if isinstance(value, tuple):
+            quoted = quote_array(value, wrap=False)
+        else:
+            quoted = quote(value)
+        return u"NOT (%s && ARRAY[%s])" % (field, quoted)
+    else:
+        # applicable for array field
+        if isinstance(value, tuple):
+            return u"NOT (%s && ARRAY[%s])" % (field, quote_array(value, wrap=False))
+        return u"NOT (%s && ARRAY[%s])" % (field, quote(value))
+
+
 def generate_select(table: str, columns: Tuple[str], where: Union[Tuple[Tuple], None],
-                    group_by: Union[Tuple[str], None], group_filter: Union[Dict, None], order_by: Union[Dict, None]):
-    """Generate SELECT query
+                            group_by: Union[Tuple[str], None], group_filter: Union[Dict, None],
+                            order_by: Union[Dict, None]):
+    """Generate dynamic SELECT query
 
     :param str table:
     :param tuple columns:
     :param tuple where:
            A list of conditions. E.x:
            (
-             ("field_name", <value>), -- field_name = <value>
-             ("field_name", <value>, "="), -- field_name = <value>
-             ("field_name1", <value>, "or", "field_name2", <value2>), -- field_name1 = <value1> OR field_name2 = <value2>
-             ("field_name", <value>, ">"), -- field_name > <value>
+              -- field_name = <value>
+             ("field_name", <value>),
+              -- field_name = <value>
+             ("field_name", <value>, "="),
+              -- field_name1 = <value1> OR field_name2 = <value2>
+             OR(("field_name1", <value>), ("field_name2", <value2>)),
+              -- field_name > <value>
+             ("field_name", <value>, ">"),
              ("field_name", <value>, "<="),
-             ("field_name", <value>, "<>"), -- field_name >< <value>
-             ("field_name", <value>, "!="), -- field_name != <value>
-             ("field_name", (<value1>, <value2>), "in"), -- field_name = ANY(<value1>, <value2>)
-             ("field_name", <value>, "nin"), -- field_name != ALL(<value>)
-             ("field_name", (<value1>, <value2>), "bw"), -- field_name BETWEEN <value1> AND <value2>
+              -- field_name >< <value>
+             ("field_name", <value>, "<>"),
+              -- field_name != <value>
+             ("field_name", <value>, "!="),
+              -- field_name = ANY(<value1>, <value2>)
+             ("field_name", (<value1>, <value2>), "in"),
+              -- field_name != ALL(<value>)
+             ("field_name", <value>, "not in"),
+              -- field_name BETWEEN <value1> AND <value2>
+             ("field_name", (<value1>, <value2>), "bw"),
            )
     :param tuple group_by:
            List of fields to group. E.x: ["<field_name1>", "<field_name2>"]
@@ -237,106 +313,19 @@ def generate_select(table: str, columns: Tuple[str], where: Union[Tuple[Tuple], 
     query = ["SELECT", ", ".join(columns), "FROM", table]
     if where:
         where_clause = []
+        make_filter = _generate_filter  # avoid lookup
         for cond in where:
             try:
+                and_filter = True
                 op = cond[2]
-                simple_ops = {
-                    "=": 1,
-                    ">": 2,
-                    ">=": 3,
-                    "<": 4,
-                    "<=": 5,
-                    "<>": 6,
-                    "!=": 7,
-                    "in": 8,
-                    "not in": 9,
-                    "between": 10,
-                    "contain": 11,
-                    "not contain": 12,
-                    "overlap": 13,
-                    "not overlap": 14,
-                    "or": 15
-                }
-                try:
-                    op_position = simple_ops[op]
-                except IndexError:
-                    raise UserWarning("Bad operation: %s", op)
-                if op_position < 8:
-                    where_clause.append(
-                        u"%s %s %s" % (
-                            cond[0], op, quote(cond[1])
-                        )
-                    )
-                elif op_position < 9:
-                    where_clause.append(
-                        u"%s = ANY(%s)" % (
-                            cond[0], quote_array(cond[1])
-                        )
-                    )
-                elif op_position < 10:
-                    where_clause.append(
-                        u"%s != ALL(%s)" % (
-                            cond[0], quote_array(cond[1])
-                        )
-                    )
-                elif op_position < 11:
-                    where_clause.append(
-                        u"%s BETWEEN %s AND %s" % (
-                            cond[0], quote(cond[1][0]), quote(cond[1][1])
-                        )
-                    )
-                elif op_position < 12:
-                    where_clause.append(
-                        u"%s @> %s" % (
-                            cond[0], quote(cond[1])  # applicable for array field
-                        )
-                    )
-                elif op_position < 13:
-                    where_clause.append(
-                        u"NOT (%s @> %s)" % (
-                            cond[0], quote(cond[1])  # applicable for array field
-                        )
-                    )
-                elif op_position < 14:
-                    if isinstance(cond[1], tuple):
-                        quoted = quote_array(cond[1], wrap=False)
-                    else:
-                        quoted = quote(cond[1])
-                    where_clause.append(
-                        u"%s && ARRAY[%s]" % (
-                            cond[0], quoted  # applicable for array field
-                        )
-                    )
-                elif op_position < 15:
-                    if isinstance(cond[1], tuple):
-                        quoted = quote_array(cond[1], wrap=False)
-                    else:
-                        quoted = quote(cond[1])
-                    where_clause.append(
-                        u"NOT (%s && ARRAY[%s])" % (
-                            cond[0], quoted  # applicable for array field
-                        )
-                    )
-                else:
-                    if isinstance(cond[1], tuple):
-                        where_clause.append(
-                            u"NOT (%s && ARRAY[%s])" % (
-                                cond[0], quote_array(cond[1], wrap=False)  # applicable for array field
-                            )
-                        )
-                    else:
-                        where_clause.append(
-                            u"NOT (%s && ARRAY[%s])" % (
-                                cond[0], quote(cond[1])  # applicable for array field
-                            )
-                        )
             except IndexError:
-                # default op: = (equal)
-                where_clause.append(
-                    u"%s = %s" % (
-                        cond[0], quote(cond[1])
-                    )
-                )
+                op = None
+            except TypeError:
+                and_filter = False
+            if and_filter is False:
+                where_clause.append(cond.to_sql())
+            else:
+                where_clause.append(make_filter(cond[0], cond[1], op))
         query.extend(("WHERE", " AND ".join(where_clause)))
     if group_by:
         query.append("GROUP BY %s" % ", ".join(group_by))
@@ -366,6 +355,34 @@ def quote_fields(fields: Dict, start_counter=1) -> Tuple[List, List, List, int]:
             params.append(value)
             next_position += 1
     return list(field_names), placeholders, params, next_position
+
+
+class Or:
+    """SQL builder for the conditional clause OR"""
+
+    def __init__(self, *conditions):
+        self.conditions = conditions
+
+    def to_sql(self):
+        ret = []
+        make_filter = _generate_filter  # avoid lookup
+        for cond in self.conditions:
+            try:
+                and_filter = True
+                op = cond[2]
+            except IndexError:
+                op = None
+            except TypeError:
+                and_filter = False
+            if and_filter is False:
+                ret[-1] = ret[-1] + " OR " + cond.to_sql()
+            else:
+                ret.append(make_filter(cond[0], cond[1], op))
+        try:
+            ret[1]  # 2+ filters?
+            return "(%s)" % " OR ".join(ret)
+        except IndexError:
+            return " OR ".join(ret)
 
 
 class SessionManager:

@@ -364,15 +364,19 @@ async def test_connection(request: Request):
                 return_fields="user_id"
             )
             from datetime import timedelta
-            from revopy.ds.postgresql import generate_select
+            from revopy.ds.postgresql import generate_select, Or
             from revopy.ds import SORT_ASC, SORT_DESC
             rs34 = generate_select(
-                "users", ("user_id", "first_name", "last_name", "status"),
+                "users",
+                ("user_id", "first_name", "last_name", "status"),
                 (
                     ("status", 1),
+                    Or(("status", 1), ("status", 2)),
                     ("first_name", "Định")
                 ),
-                ("last_name"), None, (("user_id", SORT_ASC), ("first_name", SORT_DESC))
+                ("last_name", ),
+                None,
+                (("user_id", SORT_ASC), ("first_name", SORT_DESC))
             )
             now = datetime.datetime.utcnow()
             two_days_before = now - timedelta(days=2)
@@ -389,6 +393,7 @@ async def test_connection(request: Request):
                     ("status", (3, 4), "in"),
                     ("created_time", (now, two_days_before), "between"),
                     ("status", 4, "contain"),
+                    Or(("status", 4, "contain"), ("status", 5, "contain")),
                     ("status", 8, "not contain"),
                     ("status", 5, "overlap"),
                     ("status", 10, "not overlap"),
@@ -416,6 +421,7 @@ async def test_connection(request: Request):
                     ("status", (3, 4), "in"),
                     ("created_time", (now, two_days_before), "between"),
                     ("status", 4, "contain"),
+                    Or(("status", 4), ("status", 6)),
                     ("status", 8, "not contain"),
                     ("status", 5, "overlap"),
                     ("status", 10, "not overlap"),
