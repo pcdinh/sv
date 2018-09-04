@@ -423,10 +423,9 @@ async def test_connection(request: Request):
                     ("weight", 4, "contain"),
                     Or(("status", 4), ("status", 6)),
                     ("weight", 8, "not contain"),
+
                     ("weight", "int4range(5, 6)", "overlap"),
                     ("weight", "int4range(50, 60)", "not overlap"),
-                    ("last_name", "Định Phạm", "contain"),
-                    ("last_name", "Định Phạm", "overlap")
                 ),
                 # group by
                 ("user_id", "first_name"),

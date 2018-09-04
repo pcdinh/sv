@@ -260,10 +260,14 @@ def _generate_filter(field: str, value: Union[str, Tuple], op: Union[str, None])
         # https://www.postgresql.org/docs/10/static/rangetypes.html
         if not isinstance(value, str):
             raise UserWarning("Bad value compared against the field %s: string is required", field)
+        if not "range(" in value:
+            raise UserWarning("Bad value compared against the field %s: range function is required", field)
         return u"%s && %s" % (field, value.replace("'", ""))
     if op_position < 15:
         if not isinstance(value, str):
             raise UserWarning("Bad value compared against the field %s: string is required", field)
+        if not "range(" in value:
+            raise UserWarning("Bad value compared against the field %s: range function is required", field)
         return u"NOT (%s && %s)" % (field, value.replace("'", ""))
     else:
         # LIKE
@@ -771,6 +775,6 @@ class SessionManager:
         :return: a list of dictionaries
         :rtype: list
         """
-        query = generate_select(table, columns, None, group_by, group_filter, order_by)
+        query = generate_select(table, columns, where, group_by, group_filter, order_by)
         ret = await self._execute_and_fetch(query, None, 0, timeout=self.timeout)
         return [dict(row) for row in ret]
