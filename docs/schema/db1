@@ -7,6 +7,7 @@ CREATE TABLE users (
     refresh_token VARCHAR(150),
     source int, -- 1: direct, 2: fb, 3: google
     status int NOT NULL,
+    weight int4range,
     created_time TIMESTAMPTZ NOT NULL
 );
 

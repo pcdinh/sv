@@ -12,8 +12,12 @@ WHERE_NOT = '<>'
 WHERE_BETWEEN = 'between'
 WHERE_IN = 'in'
 WHERE_NOT_IN = 'not in'
-WHERE_CONTAIN = 'contain'  # https://www.postgresql.org/docs/9.3/static/functions-range.html
+# https://www.postgresql.org/docs/9.3/static/functions-range.html
+# range type
+WHERE_CONTAIN = 'contain'
+# range type
 WHERE_NOT_CONTAIN = 'not contain'
+# both field and value are range types
 WHERE_OVERLAP = "overlap"
 WHERE_NOT_OVERLAP = "not overlap"
 WHERE_OR = 'or'

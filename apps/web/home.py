@@ -65,7 +65,7 @@ async def test_connection(request: Request):
             async with connection.transaction():
                 # Run the query
                 await connection.execute(
-                    '''INSERT INTO users(user_id, first_name, last_name, source, status, created_time) 
+                    '''INSERT INTO users(user_id, first_name, last_name, source, status, weight, created_time) 
                        VALUES($1, $2, $3, $4, $5, $6)''',
                     1, "Lionen", "Messi", 1, 1, datetime.datetime.utcnow()
                 )
@@ -348,6 +348,7 @@ async def test_connection(request: Request):
                         "last_name": Placeholder("UPPER(%(last_name)s)", {"last_name": "Last5"}),
                         "source": 1,
                         "status": 1,
+                        "weight": Placeholder("int4range(50, 70)"),
                         "access_token": None,
                         "created_time": datetime.datetime.utcnow()
                     },
@@ -357,6 +358,7 @@ async def test_connection(request: Request):
                         "last_name": Placeholder("UPPER('Last6')"),
                         "source": 1,
                         "status": 1,
+                        "weight": Placeholder("int4range(80, 90)"),
                         "access_token": None,
                         "created_time": datetime.datetime.utcnow()
                     }
@@ -364,7 +366,7 @@ async def test_connection(request: Request):
                 return_fields="user_id"
             )
             from datetime import timedelta
-            from revopy.ds.postgresql import generate_select, Or
+            from revopy.ds.postgresql import generate_select, Or, Match
             from revopy.ds import SORT_ASC, SORT_DESC
             rs34 = generate_select(
                 "users",
@@ -392,14 +394,11 @@ async def test_connection(request: Request):
                     ("status", (0, 1), "not in"),
                     ("status", (3, 4), "in"),
                     ("created_time", (now, two_days_before), "between"),
-                    ("status", 4, "contain"),
-                    Or(("status", 4, "contain"), ("status", 5, "contain")),
-                    ("status", 8, "not contain"),
-                    ("status", 5, "overlap"),
-                    ("status", 10, "not overlap"),
-                    ("last_name", "Định Phạm", "contain"),
-                    ("last_name", "Định Phạm", "overlap"),
-                    ("last_name", ("Định Phạm", "Gì cũng được"), "overlap"),
+                    ("weight", 40, "contain"),
+                    Or(("weight", 40, "contain"), ("weight", 50, "contain")),
+                    ("weight", 8, "not contain"),
+                    ("weight", "int4range(80, 90)", "overlap"),
+                    ("weight", "int4range(50, 60)", "not overlap"),
                     ("last_name", "%nh", "like"),
                 ),
                 # group by
@@ -421,14 +420,45 @@ async def test_connection(request: Request):
                     ("status", (0, 1), "not in"),
                     ("status", (3, 4), "in"),
                     ("created_time", (now, two_days_before), "between"),
-                    ("status", 4, "contain"),
+                    ("weight", 4, "contain"),
                     Or(("status", 4), ("status", 6)),
-                    ("status", 8, "not contain"),
-                    ("status", 5, "overlap"),
-                    ("status", 10, "not overlap"),
+                    ("weight", 8, "not contain"),
+                    ("weight", "int4range(5, 6)", "overlap"),
+                    ("weight", "int4range(50, 60)", "not overlap"),
                     ("last_name", "Định Phạm", "contain"),
-                    ("last_name", "Định Phạm", "overlap"),
-                    ("last_name", ("Định Phạm", "Gì cũng được"), "overlap"),
+                    ("last_name", "Định Phạm", "overlap")
+                ),
+                # group by
+                ("user_id", "first_name"),
+                # group filter
+                None,
+                # order by
+                (("user_id", SORT_ASC), ("first_name", SORT_DESC))
+            )
+            rs37 = generate_select(
+                # table
+                "users",
+                # columns
+                ("user_id", "first_name"),
+                # where
+                (
+                    Match("first_name", "Định"),
+                ),
+                # group by
+                ("user_id", "first_name"),
+                # group filter
+                None,
+                # order by
+                (("user_id", SORT_ASC), ("first_name", SORT_DESC))
+            )
+            rs38 = await connection.find(
+                # table
+                "users",
+                # columns
+                ("user_id", "first_name"),
+                # where
+                (
+                    Match("first_name", "Định"),
                 ),
                 # group by
                 ("user_id", "first_name"),
@@ -474,7 +504,9 @@ async def test_connection(request: Request):
                     "rs33": rs33,
                     "rs34": rs34,
                     "rs35": rs35,
-                    "rs36": rs36
+                    "rs36": rs36,
+                    "rs37": rs37,
+                    "rs38": rs38
                 }
             )
     except Exception as error:

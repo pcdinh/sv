@@ -249,27 +249,25 @@ def _generate_filter(field: str, value: Union[str, Tuple], op: Union[str, None])
     if op_position < 11:
         return u"%s BETWEEN %s AND %s" % (field, quote(value[0]), quote(value[1]))
     if op_position < 12:
-        # applicable for array field
+        # applicable for range field
         return u"%s @> %s" % (field, quote(value))
     if op_position < 13:
-        # applicable for array field
+        # applicable for range field
         return u"NOT (%s @> %s)" % (field, quote(value))
     if op_position < 14:
-        if isinstance(value, tuple):
-            quoted = quote_array(value, wrap=False)
-        else:
-            quoted = quote(value)
-        # applicable for array field
-        return u"%s && ARRAY[%s]" % (field, quoted)
+        # applicable for range field
+        # value must be a function: int4range, int8range, tsrange ...
+        # https://www.postgresql.org/docs/10/static/rangetypes.html
+        if not isinstance(value, str):
+            raise UserWarning("Bad value compared against the field %s: string is required", field)
+        return u"%s && %s" % (field, value.replace("'", ""))
     if op_position < 15:
-        if isinstance(value, tuple):
-            quoted = quote_array(value, wrap=False)
-        else:
-            quoted = quote(value)
-        return u"NOT (%s && ARRAY[%s])" % (field, quoted)
+        if not isinstance(value, str):
+            raise UserWarning("Bad value compared against the field %s: string is required", field)
+        return u"NOT (%s && %s)" % (field, value.replace("'", ""))
     else:
         # LIKE
-        return u"%s LIKE %s)" % (field, quote(value))
+        return u"%s LIKE %s" % (field, quote(value))
 
 
 def generate_select(table: str, columns: Tuple[str], where: Union[Tuple[Tuple], None],
@@ -381,6 +379,30 @@ class Or:
             return "(%s)" % " OR ".join(ret)
         except IndexError:
             return " OR ".join(ret)
+
+
+class Match:
+    """SQL builder for the full-text matching clause"""
+
+    def __init__(self, field, terms, is_vector_field=True):
+        """
+
+        :param str field:
+               Field name. E.x: document.
+               It can be a concatenation of several field names. E.x: title || '. ' || content
+        :param str terms:
+               User provided keyword to search for. E.x: guitar, guitar | piano
+        :param bool is_vector_field:
+               `True` indicates that the provided `field` is of `tsvector` type
+        """
+        self.field = field
+        self.is_vector_field = is_vector_field
+        self.terms = terms
+
+    def to_sql(self):
+        if self.is_vector_field is True:
+            return "%s @@ to_tsquery(%s)" % (self.field, quote(self.terms))
+        return "to_tsvector(%s) @@ to_tsquery(%s)" % (self.field, quote(self.terms))
 
 
 class SessionManager:

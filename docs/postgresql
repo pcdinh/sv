@@ -34,3 +34,6 @@ SET SESSION ROLE dbdev1;
 
 # Restart
 sudo /etc/init.d/postgresql restart
+
+# Connect
+psql -d sv1 -U dbdev1 -W
