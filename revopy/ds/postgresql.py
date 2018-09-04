@@ -254,7 +254,8 @@ def generate_select(table: str, columns: Tuple[str], where: Union[Tuple[Tuple], 
                     "contain": 11,
                     "not contain": 12,
                     "overlap": 13,
-                    "not overlap": 14
+                    "not overlap": 14,
+                    "or": 15
                 }
                 try:
                     op_position = simple_ops[op]
@@ -298,17 +299,24 @@ def generate_select(table: str, columns: Tuple[str], where: Union[Tuple[Tuple], 
                     )
                 elif op_position < 14:
                     if isinstance(cond[1], tuple):
-                        where_clause.append(
-                            u"%s && ARRAY[%s]" % (
-                                cond[0], quote_array(cond[1], wrap=False)  # applicable for array field
-                            )
-                        )
+                        quoted = quote_array(cond[1], wrap=False)
                     else:
-                        where_clause.append(
-                            u"%s && ARRAY[%s]" % (
-                                cond[0], quote(cond[1])  # applicable for array field
-                            )
+                        quoted = quote(cond[1])
+                    where_clause.append(
+                        u"%s && ARRAY[%s]" % (
+                            cond[0], quoted  # applicable for array field
                         )
+                    )
+                elif op_position < 15:
+                    if isinstance(cond[1], tuple):
+                        quoted = quote_array(cond[1], wrap=False)
+                    else:
+                        quoted = quote(cond[1])
+                    where_clause.append(
+                        u"NOT (%s && ARRAY[%s])" % (
+                            cond[0], quoted  # applicable for array field
+                        )
+                    )
                 else:
                     if isinstance(cond[1], tuple):
                         where_clause.append(

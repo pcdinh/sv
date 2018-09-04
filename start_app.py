@@ -16,7 +16,7 @@ app = Vibora()
 
 @app.handle(Events.BEFORE_SERVER_START)
 async def initialize_engine(current_app: Vibora):
-    # Registering the config instance.
+    # Register the config instance.
     from revopy import initialize_app
     await initialize_app(
         current_app,
