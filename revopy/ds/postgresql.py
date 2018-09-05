@@ -368,14 +368,14 @@ class Or:
         make_filter = _generate_filter  # avoid lookup
         for cond in self.conditions:
             try:
-                and_filter = True
+                complex_filter = False
                 op = cond[2]
             except IndexError:
                 op = None
             except TypeError:
-                and_filter = False
-            if and_filter is False:
-                ret[-1] = ret[-1] + " OR " + cond.to_sql()
+                complex_filter = True
+            if complex_filter is True:
+                ret.append(cond.to_sql())
             else:
                 ret.append(make_filter(cond[0], cond[1], op))
         try:
@@ -384,29 +384,90 @@ class Or:
         except IndexError:
             return " OR ".join(ret)
 
+    def __str__(self):
+        return self.to_sql()
+
 
 class Match:
-    """SQL builder for the full-text matching clause"""
+    """SQL builder for the full-text matching clause
+    See: https://www.postgresql.org/docs/10/static/textsearch-controls.html
+    """
+    FT_PLAIN = 1
+    # Term search: & or | or <-> or ! or <N>
+    # Pre-defined operator
+    FT_USER_QUERY = 2
+    FT_ALL_TERM = 3  # Term search: &
+    FT_ANY_TERM = 4  # Term search: |
+    FT_PHRASE = 5  # Phrase search: phraseto_tsquery()
+    FT_PHRASE_DISTANCE = 6
+    # Prefix search
+    FT_PREFIX = 7
+    # Used when developer wants to specify his own query. E.x: to_tsquery('fat') <-> to_tsquery('cat | rat')
+    # which results in: 'fat' <-> 'cat' | 'fat' <-> 'rat'
+    # reg_config will not be applied
+    # See: https://www.postgresql.org/docs/10/static/textsearch-features.html
+    FT_CUSTOM = 8
 
-    def __init__(self, field, terms, is_vector_field=True):
+    def __init__(self, field: str, terms: Union[str, Tuple], phrase_distance=2, query_type: int=1,
+                 reg_config: str="english"):
         """
 
         :param str field:
-               Field name. E.x: document.
+               Field name or a function applied to a field name. E.x: title or to_tsvector(title).
                It can be a concatenation of several field names. E.x: title || '. ' || content
-        :param str terms:
+        :param str|tuple terms:
                User provided keyword to search for. E.x: guitar, guitar | piano
-        :param bool is_vector_field:
-               `True` indicates that the provided `field` is of `tsvector` type
+        :param int phrase_distance:
+               Find matching rows that have words word1 and word2 separated by at most <phrase_distance> other word.
+        :param int query_type:
+        :param str reg_config:
         """
         self.field = field
-        self.is_vector_field = is_vector_field
         self.terms = terms
+        self.phrase_distance = phrase_distance  # applied for FT_PHRASE_DISTANCE
+        self.query_type = query_type
+        self.reg_config = reg_config
 
     def to_sql(self):
-        if self.is_vector_field is True:
-            return "%s @@ to_tsquery(%s)" % (self.field, quote(self.terms))
-        return "to_tsvector(%s) @@ to_tsquery(%s)" % (self.field, quote(self.terms))
+        if self.query_type == 1:
+            # The operator AND (&) will be used
+            return "%s @@ plainto_tsquery('%s', %s)" % (self.field, self.reg_config, quote(self.terms))
+        if self.query_type == 2:
+            # The operator AND (&) or OR (|) or FOLLOWED_by (<->) or DISTANCE (<N>) must be prepared by developer
+            # E.x: learning & mathematics
+            #  Single-quoted phrases are accepted. E.x: ''supernovae stars'' & !crab
+            return "%s @@ to_tsquery('%s', %s)" % (self.field, self.reg_config, quote(self.terms))
+        if self.query_type == 3:
+            # All terms must be found in matching documents
+            if not isinstance(self.terms, tuple):
+                raise UserWarning("Tuple is required in a query FT_ALL_TERM")
+            return "%s @@ to_tsquery('%s', %s)" % (self.field, self.reg_config, quote(" & ".join(self.terms)))
+        if self.query_type == 4:
+            # At least one of terms must be found in matching documents
+            if not isinstance(self.terms, tuple):
+                raise UserWarning("Tuple is required in a query FT_ANY_TERM")
+            return "%s @@ to_tsquery('%s', %s)" % (self.field, self.reg_config, quote(" | ".join(self.terms)))
+        if self.query_type == 5:
+            # The operator FOLLOWED_BY (<->) will be used
+            return "%s @@ phraseto_tsquery('%s', %s)" % (self.field, self.reg_config, quote(self.terms))
+        if self.query_type == 6:
+            # The operator DISTANCE (<N>: <2>, <3> ...) will be used
+            # Phrase "like mathematics" will be converted to "like <2> mathematics"
+            return "%s @@ to_tsquery('%s', %s)" % (
+                self.field, self.reg_config, quote(self.terms.replace(" ", " <%s> " % self.phrase_distance))
+            )
+        if self.query_type == 7:
+            # Prefix search
+            if not isinstance(self.terms, str):
+                raise UserWarning("String is required in a query FT_PREFIX")
+            if " " in self.terms:
+                raise UserWarning("Single term, not phrase, is required in a query FT_PREFIX")
+            return "%s @@ to_tsquery('%s', %s)" % (self.field, self.reg_config, quote(self.terms + ":*"))
+        # Custom query specified by developer
+        return "%s @@ (%s)" % (self.field, self.terms)
+
+    def __str__(self):
+        return self.to_sql()
 
 
 class SessionManager:

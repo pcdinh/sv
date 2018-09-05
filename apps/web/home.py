@@ -441,7 +441,19 @@ async def test_connection(request: Request):
                 ("user_id", "first_name"),
                 # where
                 (
-                    Match("first_name", "Định"),
+                    Match("first_name", "Định F5"),
+                    Match("last_name", "Định | F5", query_type=Match.FT_USER_QUERY),
+                    Match("last_name", ('Định', 'F5'), query_type=Match.FT_ALL_TERM),
+                    Match("last_name", ('Định', 'F5'), query_type=Match.FT_ANY_TERM),
+                    Match("last_name", 'Định F5', query_type=Match.FT_PHRASE),
+                    Match("last_name", 'Định F5', query_type=Match.FT_PHRASE_DISTANCE, phrase_distance=3),
+                    Match("last_name", 'F', query_type=Match.FT_PREFIX),
+                    Match("last_name", "to_tsquery('F5') <-> to_tsquery('Định | Phạm')", query_type=Match.FT_CUSTOM),
+                    Match("last_name", "to_tsquery('F5')", query_type=Match.FT_CUSTOM),
+                    Or(
+                        Match("last_name", "to_tsquery('F10')", query_type=Match.FT_CUSTOM),
+                        Match("first_name", "Định F10"),
+                    ),
                 ),
                 # group by
                 ("user_id", "first_name"),
@@ -457,7 +469,19 @@ async def test_connection(request: Request):
                 ("user_id", "first_name"),
                 # where
                 (
-                    Match("first_name", "Định"),
+                    Match("first_name", "Định F5"),
+                    Match("last_name", "Định | F5", query_type=Match.FT_USER_QUERY),
+                    Match("last_name", ('Định', 'F5'), query_type=Match.FT_ALL_TERM),
+                    Match("last_name", ('Định', 'F5'), query_type=Match.FT_ANY_TERM),
+                    Match("last_name", 'Định F5', query_type=Match.FT_PHRASE),
+                    Match("last_name", 'Định F5', query_type=Match.FT_PHRASE_DISTANCE, phrase_distance=3),
+                    Match("last_name", 'F', query_type=Match.FT_PREFIX),
+                    Match("last_name", "to_tsquery('F5') <-> to_tsquery('Định | Phạm')", query_type=Match.FT_CUSTOM),
+                    Match("last_name", "to_tsquery('F5')", query_type=Match.FT_CUSTOM),
+                    Or(
+                        Match("last_name", "to_tsquery('F5')", query_type=Match.FT_CUSTOM),
+                        Match("first_name", "Định F5"),
+                    ),
                 ),
                 # group by
                 ("user_id", "first_name"),
