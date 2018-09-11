@@ -332,8 +332,7 @@ class JoinedTable:
                 join_sql = "RIGHT JOIN"
             ret.append(
                 JoinedTable._build_join(
-                    step[0], join_sql, step[1],
-                    step[0], step[2], step[1], step[3]
+                    step[0], step[1], step[2], step[3], join_sql
                 )
             )
         return " ".join(ret)
@@ -378,12 +377,16 @@ def generate_select(table: Union[str, JoinedTable], columns: Tuple[str], where: 
     :param tuple group_by:
            List of fields to group. E.x: ["<field_name1>", "<field_name2>"]
     :param tuple group_filter:
+           Filter after grouping
     :param dict order_by:
     :return:
     """
-    if isinstance(table, tuple):
-        pass
-    query = ["SELECT", ", ".join(columns), "FROM", table]
+    table_prefix = False
+    if isinstance(table, str):
+        query = ["SELECT", ", ".join(columns), "FROM", table]
+    else:  # JoinedTable
+        table_prefix = True
+        query = ["SELECT", ", ".join(columns), "FROM", table.to_sql()]
     where_clause = []
     if where:
         make_filter = _generate_filter  # avoid lookup
