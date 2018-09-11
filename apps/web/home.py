@@ -373,7 +373,10 @@ async def test_connection(request: Request):
                 ("user_id", "first_name", "last_name", "status"),
                 (
                     ("status", 1),
-                    Or(("status", 1), ("status", 2)),
+                    Or(
+                        ("status", 1),
+                        ("status", 2)
+                    ),
                     ("first_name", "Định")
                 ),
                 ("last_name", ),
@@ -395,7 +398,10 @@ async def test_connection(request: Request):
                     ("status", (3, 4), "in"),
                     ("created_time", (now, two_days_before), "between"),
                     ("weight", 40, "contain"),
-                    Or(("weight", 40, "contain"), ("weight", 50, "contain")),
+                    Or(
+                        ("weight", 40, "contain"),
+                        ("weight", 50, "contain")
+                    ),
                     ("weight", 8, "not contain"),
                     ("weight", "int4range(80, 90)", "overlap"),
                     ("weight", "int4range(50, 60)", "not overlap"),
@@ -421,9 +427,11 @@ async def test_connection(request: Request):
                     ("status", (3, 4), "in"),
                     ("created_time", (now, two_days_before), "between"),
                     ("weight", 4, "contain"),
-                    Or(("status", 4), ("status", 6)),
+                    Or(
+                        ("status", 4),
+                        ("status", 6)
+                    ),
                     ("weight", 8, "not contain"),
-
                     ("weight", "int4range(5, 6)", "overlap"),
                     ("weight", "int4range(50, 60)", "not overlap"),
                 ),

@@ -274,12 +274,81 @@ def _generate_filter(field: str, value: Union[str, Tuple], op: Union[str, None])
         return u"%s LIKE %s" % (field, quote(value))
 
 
-def generate_select(table: str, columns: Tuple[str], where: Union[Tuple[Tuple], None],
+class JoinedTable:
+    """
+    :code
+         select(
+           JoinedTable(
+               "table1", "table2", "primary_key1", "foreign_key2", join_type=JoinedTable.INNER_JOIN
+           ).join("table1", "table3", "primary_key1", "foreign_key3")
+         )
+    """
+
+    INNER_JOIN = 1
+    LEFT_JOIN = 2
+    RIGHT_JOIN = 3
+
+    def __init__(self, left_table, right_table, left_table_pk, right_table_fk, join_type=1):
+        self.steps = [(left_table, right_table, left_table_pk, right_table_fk, join_type)]
+
+    def join(self, left_table, right_table, left_table_pk, right_table_fk, join_type=1):
+        self.steps.append((left_table, right_table, left_table_pk, right_table_fk, join_type))
+
+    @staticmethod
+    def _build_join(left_table, right_table, left_table_pk, right_table_fk, join_sql):
+        """
+        Return SQL phrase:
+            INNER JOIN right_table
+            ON left_table.left_table_pk = right_table.right_table_fk
+        :param left_table:
+        :param right_table:
+        :param left_table_pk:
+        :param right_table_fk:
+        :param join_sql:
+        :return:
+        """
+        return "%s %s ON %s.%s = %s.%s" % (
+            join_sql, right_table,
+            left_table, left_table_pk, right_table, right_table_fk
+        )
+
+    def to_sql(self):
+        """
+        Return SQL phrase:
+            FROM table1 INNER JOIN table2
+            ON table1.left_table_pk = table2.right_table_fk
+            INNER JOIN table3
+            ON table1.left_table_pk = table3.right_table_fk
+        :return:
+        """
+        ret = ["FROM %s" % self.steps[0][0]]  # first table
+        for step in self.steps:
+            # Check join_type
+            join_sql = "INNER JOIN"
+            if step[4] == 2:
+                join_sql = "LEFT JOIN"
+            elif step[4] == 3:
+                join_sql = "RIGHT JOIN"
+            ret.append(
+                JoinedTable._build_join(
+                    step[0], join_sql, step[1],
+                    step[0], step[2], step[1], step[3]
+                )
+            )
+        return " ".join(ret)
+
+
+def generate_select(table: Union[str, JoinedTable], columns: Tuple[str], where: Union[Tuple[Tuple], None],
                     group_by: Union[Tuple[str], None], group_filter: Union[Dict, None],
                     order_by: Union[Dict, None]):
     """Generate dynamic SELECT query
 
-    :param str table:
+    :param str|JoinedTable table:
+           `table` can be a tuple of tuples:
+           (
+             ("table1", "table2", "primary-key1", "foreign-key2"),
+             ("table1", "table3", "primary-key1", "foreign-key3"),
+           )
     :param tuple columns:
     :param tuple where:
            A list of conditions. E.x:
@@ -310,9 +379,11 @@ def generate_select(table: str, columns: Tuple[str], where: Union[Tuple[Tuple], 
     :param dict order_by:
     :return:
     """
+    if isinstance(table, tuple):
+        pass
     query = ["SELECT", ", ".join(columns), "FROM", table]
+    where_clause = []
     if where:
-        where_clause = []
         make_filter = _generate_filter  # avoid lookup
         for cond in where:
             try:
@@ -358,7 +429,14 @@ def quote_fields(fields: Dict, start_counter=1) -> Tuple[List, List, List, int]:
 
 
 class Or:
-    """SQL builder for the conditional clause OR"""
+    """SQL builder for the conditional clause OR
+    :code
+
+    Or(
+        Match("last_name", "to_tsquery('F5')", query_type=Match.FT_CUSTOM),
+        Match("first_name", "Định F5"),
+    )
+    """
 
     def __init__(self, *conditions):
         self.conditions = conditions
