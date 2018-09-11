@@ -557,6 +557,104 @@ async def test_connection(request: Request):
         )
 
 
+@app.route('/join')
+async def test_join(request: Request):
+    import traceback
+    import sys
+    try:
+        import datetime
+        connection: revopy.ds.postgresql.SessionManager = None
+        async with managed(request.app.pg) as connection:
+            ''':type : revopy.ds.postgresql.SessionManager'''
+            await connection.execute(
+                "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
+                 VALUES(%(user_id)s, %(first_name)s, %(last_name)s, %(source)s, %(status)s, %(created_time)s)",
+                {
+                    "user_id": 1,
+                    "first_name": "L1000",
+                    "last_name": "F1000",
+                    "source": 1,
+                    "status": 1,
+                    "created_time": datetime.datetime.utcnow()
+                }
+            )
+            await connection.execute(
+                "INSERT INTO posts(user_id, content, created_time) \
+                 VALUES(%(user_id)s, %(content)s, %(created_time)s)",
+                {
+                    "user_id": 1,
+                    "content": "Content 01",
+                    "created_time": datetime.datetime.utcnow()
+                }
+            )
+            rs1 = await connection.fetch_one("SELECT user_id, content, created_time FROM posts")
+            from revopy.ds.postgresql import generate_select, Or, Match, JoinedTable
+            from revopy.ds import SORT_ASC, SORT_DESC
+            rs2 = generate_select(
+                # table
+                JoinedTable("users", "posts", "user_id", "user_id"),
+                # column
+                ("users.user_id", "first_name", "last_name", "users.status"),
+                # where
+                (
+                    ("users.status", 1),
+                    Or(
+                        ("users.status", 1),
+                        ("users.status", 2)
+                    ),
+                    ("users.first_name", "Định")
+                ),
+                # group by
+                ("last_name", ),
+                # group filter
+                None,
+                (("users.user_id", SORT_ASC), ("users.first_name", SORT_DESC))
+            )
+            rs3 = await connection.find(
+                # table
+                JoinedTable("users", "posts", "user_id", "user_id"),
+                # column
+                ("users.user_id", "first_name", "last_name", "users.status", "posts.content"),
+                # where
+                (
+                    ("users.status", 1),
+                    Or(
+                        ("users.status", 1),
+                        ("users.status", 2)
+                    )
+                ),
+                # group by
+                None,
+                # group filter
+                None,
+                (("users.user_id", SORT_ASC), ("users.first_name", SORT_DESC))
+            )
+            # Clean up
+            await connection.delete_all("users")
+            await connection.delete_all("posts")
+            return JsonResponse(
+                {
+                    "rs1": rs1,
+                    "rs2": rs2,
+                    "rs3": rs3
+                }
+            )
+    except Exception as error:
+        exc_type, exc_value, exc_tb = sys.exc_info()
+        tbe = traceback.TracebackException(
+            exc_type, exc_value, exc_tb,
+        )
+        e1 = ''.join(tbe.format())
+        e2 = ''.join(tbe.format_exception_only())
+        try:
+            e3 = get_exception_details()
+        except BaseException as e:
+            return WebResponse(str(e), status_code=500)
+        return WebResponse(
+            str(error) + ":" + type(error).__name__ + ">> \n" + str(e1) + "\n\n" + str(e2) + "\n\n" + e3,
+            status_code=500
+        )
+
 @app.route('/product/<product_id>')
 async def show_product(product_id: int, request: Request):
     logger.info("Testing REST route")
