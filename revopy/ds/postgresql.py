@@ -316,13 +316,13 @@ class JoinedTable:
     def to_sql(self):
         """
         Return SQL phrase:
-            FROM table1 INNER JOIN table2
+            table1 INNER JOIN table2
             ON table1.left_table_pk = table2.right_table_fk
             INNER JOIN table3
             ON table1.left_table_pk = table3.right_table_fk
         :return:
         """
-        ret = ["FROM %s" % self.steps[0][0]]  # first table
+        ret = ["%s" % self.steps[0][0]]  # first table
         for step in self.steps:
             # Check join_type
             join_sql = "INNER JOIN"
