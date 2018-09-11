@@ -280,7 +280,7 @@ class JoinedTable:
          select(
            JoinedTable(
                "table1", "table2", "primary_key1", "foreign_key2", join_type=JoinedTable.INNER_JOIN
-           ).connect("table1", "table3", "primary_key1", "foreign_key3")
+           ).combine("table1", "table3", "primary_key1", "foreign_key3")
          )
     """
 
@@ -291,7 +291,7 @@ class JoinedTable:
     def __init__(self, left_table, right_table, left_table_pk, right_table_fk, join_type=1):
         self.steps = [(left_table, right_table, left_table_pk, right_table_fk, join_type)]
 
-    def connect(self, left_table, right_table, left_table_pk, right_table_fk, join_type=1):
+    def combine(self, left_table, right_table, left_table_pk, right_table_fk, join_type=1):
         self.steps.append((left_table, right_table, left_table_pk, right_table_fk, join_type))
         return self
 
@@ -345,10 +345,11 @@ def generate_select(table: Union[str, JoinedTable], columns: Tuple[str], where: 
     """Generate dynamic SELECT query
 
     :param str|JoinedTable table:
-           `table` can be a tuple of tuples:
-           (
-             ("table1", "table2", "primary-key1", "foreign-key2"),
-             ("table1", "table3", "primary-key1", "foreign-key3"),
+           `table` can be a `JoinedTable:
+           JoinedTable("table1", "table2", "primary-key1", "foreign-key2").combine(
+             "table1", "table3", "primary-key1", "foreign-key3"
+           ).combine(
+             "table3", "table4", "primary-key3", "foreign-key4"
            )
     :param tuple columns:
     :param tuple where:
