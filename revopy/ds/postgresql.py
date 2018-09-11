@@ -275,7 +275,7 @@ def _generate_filter(field: str, value: Union[str, Tuple], op: Union[str, None])
 
 
 class JoinedTable:
-    """
+    """Utility class that helps building JOIN query in `generate_select`
     :code
          select(
            JoinedTable(
