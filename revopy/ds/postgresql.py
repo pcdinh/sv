@@ -293,6 +293,7 @@ class JoinedTable:
 
     def connect(self, left_table, right_table, left_table_pk, right_table_fk, join_type=1):
         self.steps.append((left_table, right_table, left_table_pk, right_table_fk, join_type))
+        return self
 
     @staticmethod
     def _build_join(left_table, right_table, left_table_pk, right_table_fk, join_sql):
