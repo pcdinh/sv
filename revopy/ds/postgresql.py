@@ -280,7 +280,7 @@ class JoinedTable:
          select(
            JoinedTable(
                "table1", "table2", "primary_key1", "foreign_key2", join_type=JoinedTable.INNER_JOIN
-           ).join("table1", "table3", "primary_key1", "foreign_key3")
+           ).connect("table1", "table3", "primary_key1", "foreign_key3")
          )
     """
 
@@ -291,7 +291,7 @@ class JoinedTable:
     def __init__(self, left_table, right_table, left_table_pk, right_table_fk, join_type=1):
         self.steps = [(left_table, right_table, left_table_pk, right_table_fk, join_type)]
 
-    def join(self, left_table, right_table, left_table_pk, right_table_fk, join_type=1):
+    def connect(self, left_table, right_table, left_table_pk, right_table_fk, join_type=1):
         self.steps.append((left_table, right_table, left_table_pk, right_table_fk, join_type))
 
     @staticmethod
