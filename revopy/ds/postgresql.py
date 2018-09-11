@@ -322,14 +322,15 @@ class JoinedTable:
             ON table1.left_table_pk = table3.right_table_fk
         :return:
         """
+        join_keywords = {
+            1: "INNER JOIN",
+            2: "LEFT JOIN",
+            3: "RIGHT JOIN"
+        }
         ret = ["%s" % self.steps[0][0]]  # first table
         for step in self.steps:
             # Check join_type
-            join_sql = "INNER JOIN"
-            if step[4] == 2:
-                join_sql = "LEFT JOIN"
-            elif step[4] == 3:
-                join_sql = "RIGHT JOIN"
+            join_sql = join_keywords.get(step[4], "INNER JOIN")
             ret.append(
                 JoinedTable._build_join(
                     step[0], step[1], step[2], step[3], join_sql
