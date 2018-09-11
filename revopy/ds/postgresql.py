@@ -340,7 +340,7 @@ class JoinedTable:
 
 def generate_select(table: Union[str, JoinedTable], columns: Tuple[str], where: Union[Tuple[Tuple], None],
                     group_by: Union[Tuple[str], None], group_filter: Union[Dict, None],
-                    order_by: Union[Dict, None]):
+                    order_by: Union[Dict, None], offset: int=None, limit: int=None):
     """Generate dynamic SELECT query
 
     :param str|JoinedTable table:
@@ -379,6 +379,8 @@ def generate_select(table: Union[str, JoinedTable], columns: Tuple[str], where: 
     :param tuple group_filter:
            Filter after grouping
     :param dict order_by:
+    :param int offset:
+    :param int limit:
     :return:
     """
     table_prefix = False
@@ -407,6 +409,8 @@ def generate_select(table: Union[str, JoinedTable], columns: Tuple[str], where: 
         query.append("GROUP BY %s" % ", ".join(group_by))
     if order_by:
         query.append("ORDER BY %s" % ", ".join(["%s %s" % (field_info[0], field_info[1]) for field_info in order_by]))
+    if offset and limit:
+        query.append("OFFSET %s LIMIT %s" % (offset, limit))
     return " ".join(query)
 
 
@@ -907,7 +911,8 @@ class SessionManager:
         return result
 
     async def find(self, table: str, columns: List[str], where: Union[List, None],
-                   group_by: Union[List[str], None], group_filter: Union[Dict, None], order_by: Union[Dict, None]):
+                   group_by: Union[List[str], None], group_filter: Union[Dict, None], order_by: Union[Dict, None],
+                   offset=0, limit=1):
         """Fetch all rows of a query result, returning a list
 
         :param str table:
@@ -916,9 +921,11 @@ class SessionManager:
         :param list group_by:
         :param dict group_filter:
         :param dict order_by:
+        :param int offset:
+        :param int limit:
         :return: a list of dictionaries
         :rtype: list
         """
-        query = generate_select(table, columns, where, group_by, group_filter, order_by)
+        query = generate_select(table, columns, where, group_by, group_filter, order_by, offset, limit)
         ret = await self._execute_and_fetch(query, None, 0, timeout=self.timeout)
         return [dict(row) for row in ret]

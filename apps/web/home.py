@@ -627,7 +627,8 @@ async def test_join(request: Request):
                 None,
                 # group filter
                 None,
-                (("users.user_id", SORT_ASC), ("users.first_name", SORT_DESC))
+                (("users.user_id", SORT_ASC), ("users.first_name", SORT_DESC)),
+                offset=0, limit=1
             )
             # Clean up
             await connection.delete_all("users")
