@@ -389,8 +389,9 @@ def generate_select(table: Union[str, JoinedTable], columns: Tuple[str], where: 
     else:  # JoinedTable
         table_prefix = True
         query = ["SELECT", ", ".join(columns), "FROM", table.to_sql()]
-    where_clause = []
+
     if where:
+        where_clause = []
         make_filter = _generate_filter  # avoid lookup
         for cond in where:
             try:
@@ -407,6 +408,22 @@ def generate_select(table: Union[str, JoinedTable], columns: Tuple[str], where: 
         query.extend(("WHERE", " AND ".join(where_clause)))
     if group_by:
         query.append("GROUP BY %s" % ", ".join(group_by))
+    if group_filter:
+        group_conditions = []
+        make_filter = _generate_filter  # avoid lookup
+        for cond in group_filter:
+            try:
+                and_filter = True
+                op = cond[2]
+            except IndexError:
+                op = None
+            except TypeError:
+                and_filter = False
+            if and_filter is False:
+                group_conditions.append(cond.to_sql())
+            else:
+                group_conditions.append(make_filter(cond[0], cond[1], op))
+        query.extend(("HAVING", " AND ".join(group_conditions)))
     if order_by:
         query.append("ORDER BY %s" % ", ".join(["%s %s" % (field_info[0], field_info[1]) for field_info in order_by]))
     if offset and limit:

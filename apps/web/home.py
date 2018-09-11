@@ -367,7 +367,7 @@ async def test_connection(request: Request):
             )
             from datetime import timedelta
             from revopy.ds.postgresql import generate_select, Or, Match
-            from revopy.ds import SORT_ASC, SORT_DESC
+            from revopy.ds import SORT_ASC, SORT_DESC, WHERE_NOT
             rs34 = generate_select(
                 "users",
                 ("user_id", "first_name", "last_name", "status"),
@@ -464,9 +464,11 @@ async def test_connection(request: Request):
                     ),
                 ),
                 # group by
-                ("user_id", "first_name"),
+                ("user_id", "first_name", "status"),
                 # group filter
-                None,
+                (
+                    ("status", 1), ("status", 5, WHERE_NOT)
+                ),
                 # order by
                 (("user_id", SORT_ASC), ("first_name", SORT_DESC))
             )
@@ -492,9 +494,11 @@ async def test_connection(request: Request):
                     ),
                 ),
                 # group by
-                ("user_id", "first_name"),
+                ("user_id", "first_name", "status"),
                 # group filter
-                None,
+                (
+                    ("status", 1), ("status", 5, WHERE_NOT)
+                ),
                 # order by
                 (("user_id", SORT_ASC), ("first_name", SORT_DESC))
             )
