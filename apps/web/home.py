@@ -655,6 +655,7 @@ async def test_join(request: Request):
             status_code=500
         )
 
+
 @app.route('/product/<product_id>')
 async def show_product(product_id: int, request: Request):
     logger.info("Testing REST route")
