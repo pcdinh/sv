@@ -31,4 +31,5 @@ if __name__ == '__main__':
     loop.run_until_complete(
         migration.run(migration_table, app, current_dir)
     )
+    loop.close()
 
