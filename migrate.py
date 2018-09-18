@@ -24,8 +24,11 @@ if __name__ == '__main__':
     from vibora import Vibora
     app = Vibora()
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    migration_table = "_migrated_queries"
+    migration_table = "_migrated_changes"
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(migration.run(migration_table, app, current_dir))
+    loop.run_until_complete(
+        migration.run(migration_table, app, current_dir)
+    )
+

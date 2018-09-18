@@ -34,11 +34,9 @@ async def migrate(table_name, app, base_path, env, current_version,
     :param verbose: Verbose mode
     """
     from revopy import initialize_app
-    from revopy import Config
     await initialize_app(
         app, base_path, "dev1", 'apps/config/settings.py', 'apps/config/settings_{}.py'
     )
-    config = app.components.get(Config)
     if migration_dir is None:
         migration_dir = os.path.join(base_path, 'migration')
 
@@ -214,7 +212,7 @@ def load_changes(previous_version, current_version, path):
 
 def parse_version(version_number):
     """Parses MAJOR.MINOR.PATCH version number
-    @return a tuple(MAJOR, MINOR, PATCH). E.x: (2, 3, "1b") or (2, 3, 2)
+    :return a tuple(MAJOR, MINOR, PATCH). E.x: (2, 3, "1b") or (2, 3, 2)
     """
     parts = version_number.split(".", 2)
     parts[0] = int(parts[0])
@@ -253,26 +251,26 @@ async def run(migration_table, app, current_dir):
 
     Queries to test:
 
-    INSERT INTO _migrated_queries (version, name, description, operation) VALUES (
+    INSERT INTO _migrated_changes (version, name, description, operation) VALUES (
     '2.0.0', 'A', 'B', 'C'
     );
 
-    INSERT INTO _migrated_queries (version, name, description, operation) VALUES (
+    INSERT INTO _migrated_changes (version, name, description, operation) VALUES (
     '2.0.1', 'A', 'B', 'C'
     );
-    INSERT INTO _migrated_queries (version, name, description, operation) VALUES (
+    INSERT INTO _migrated_changes (version, name, description, operation) VALUES (
     '2.0.1a' , 'A', 'B', 'C'
     );
-    INSERT INTO _migrated_queries (version, name, description, operation) VALUES (
+    INSERT INTO _migrated_changes (version, name, description, operation) VALUES (
     '2.0.1b', 'A', 'B', 'C'
     );
-    INSERT INTO _migrated_queries (version, name, description, operation) VALUES (
+    INSERT INTO _migrated_changes (version, name, description, operation) VALUES (
     '2.0.2', 'A', 'B', 'C'
     );
 
-    SELECT * FROM _migrated_queries WHERE version >= '2.0.1'
+    SELECT * FROM _migrated_changes WHERE version >= '2.0.1'
     -- Expected: 2.0.1 2.0.1a 2.0.1b 2.0.2
-    SELECT * FROM _migrated_queries WHERE version > '2.0.1a'
+    SELECT * FROM _migrated_changes WHERE version > '2.0.1a'
     -- Expected: 2.0.1a 2.0.1b 2.0.2
     """
     import argparse
