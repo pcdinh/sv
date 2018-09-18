@@ -858,7 +858,7 @@ class SessionManager:
         :return: The number of affected rows
         """
         if not where:
-            raise UserWarning('Inappropriate use of update() without WHERE clause. Use update_all() instead')
+            raise UserWarning('Invalid use of update() without WHERE clause. Use update_all() instead')
         self.connection._check_open()
         update_query, params = generate_native_update_query(table, values, where)
         _, status, _ = await self.connection._execute(update_query, params, 0, None, True)
@@ -884,7 +884,7 @@ class SessionManager:
         :return The number of deleted rows
         """
         if not where:
-            raise UserWarning('Inappropriate use of delete() without WHERE clause. Use delete_all() instead')
+            raise UserWarning('Invalid use of delete() without WHERE clause. Use delete_all() instead')
         self.connection._check_open()
         where_clause, params = _generate_where_clause(where)
         query = "DELETE FROM %s %s" % (table, where_clause)
@@ -900,7 +900,7 @@ class SessionManager:
         :return List of deleted rows
         """
         if not where:
-            raise UserWarning('Inappropriate use of delete_and_fetch() without WHERE clause. Use delete_all() instead')
+            raise UserWarning('Invalid use of delete_and_fetch() without WHERE clause. Use delete_all() instead')
         where_clause, params = _generate_where_clause(where)
         query = "DELETE FROM %s %s RETURNING %s" % (table, where_clause, return_field)
         result = await self._execute_and_fetch(query, params, 0, self.timeout, return_status=False)

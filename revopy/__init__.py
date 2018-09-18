@@ -80,7 +80,8 @@ class Config:
 async def initialize_app(app: Vibora, base_path: str,
                          default_environ: str,
                          default_settings_file: str,
-                         environment_settings_file: str):
+                         environment_settings_file: str,
+                         start_db=True):
     """
 
     :param Vibora app:
@@ -96,12 +97,13 @@ async def initialize_app(app: Vibora, base_path: str,
     config.from_py_file(default_settings_file)
     config.from_py_file(environment_settings_file.format(environ_name))
     app.components.add(config)
-    pg_pool: asyncio.Future = await asyncpg.create_pool(
-        app.components.get(Config).POSTGRESQL_DSN,
-        max_inactive_connection_lifetime=config.POSTGRESQL_POOL[2],
-        min_size=config.POSTGRESQL_POOL[0],
-        max_size=config.POSTGRESQL_POOL[1],
-        loop=app.loop
-    )
-    from revopy.ds.postgresql import SessionManager
-    app.pg: SessionManager = SessionManager(pg_pool)
+    if start_db is True:
+        pg_pool: asyncio.Future = await asyncpg.create_pool(
+            app.components.get(Config).POSTGRESQL_DSN,
+            max_inactive_connection_lifetime=config.POSTGRESQL_POOL[2],
+            min_size=config.POSTGRESQL_POOL[0],
+            max_size=config.POSTGRESQL_POOL[1],
+            loop=app.loop
+        )
+        from revopy.ds.postgresql import SessionManager
+        app.pg: SessionManager = SessionManager(pg_pool)
