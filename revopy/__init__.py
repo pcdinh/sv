@@ -81,7 +81,7 @@ async def initialize_app(app: Vibora, base_path: str,
                          default_environ: str,
                          default_settings_file: str,
                          environment_settings_file: str,
-                         start_db=True):
+                         start_db=True, event_loop=None):
     """
 
     :param Vibora app:
@@ -89,6 +89,8 @@ async def initialize_app(app: Vibora, base_path: str,
     :param str default_environ:
     :param str default_settings_file:
     :param str environment_settings_file:
+    :param bool start_db:
+    :param event_loop:
     :return:
     """
     environ_name = os.environ.get("ENV_NAME", default_environ)
@@ -103,7 +105,7 @@ async def initialize_app(app: Vibora, base_path: str,
             max_inactive_connection_lifetime=config.POSTGRESQL_POOL[2],
             min_size=config.POSTGRESQL_POOL[0],
             max_size=config.POSTGRESQL_POOL[1],
-            loop=app.loop
+            loop=event_loop or app.loop
         )
         from revopy.ds.postgresql import SessionManager
         app.pg: SessionManager = SessionManager(pg_pool)

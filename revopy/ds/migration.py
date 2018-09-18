@@ -9,7 +9,7 @@ logger = logging.getLogger("revopy.migrator")
 
 
 async def migrate(table_name, app, base_path, env, current_version,
-                  migrate_from=None, migration_dir=None, dry_run=False, verbose=False):
+                  migrate_from=None, migration_dir=None, dry_run=False, verbose=False, event_loop=None):
     """Run migration scripts
     :param table_name:
     :param app:
@@ -32,10 +32,11 @@ async def migrate(table_name, app, base_path, env, current_version,
     :param migration_dir:
     :param dry_run: Print all what will be executed, not executing them effectively
     :param verbose: Verbose mode
+    :param event_loop:
     """
     from revopy import initialize_app
     await initialize_app(
-        app, base_path, "dev1", 'apps/config/settings.py', 'apps/config/settings_{}.py'
+        app, base_path, "dev1", 'apps/config/settings.py', 'apps/config/settings_{}.py', event_loop=event_loop
     )
     if migration_dir is None:
         migration_dir = os.path.join(base_path, 'migration')
@@ -236,7 +237,7 @@ async def create_migration_table(table_name, conn):
     await conn.execute(q)
 
 
-async def run(migration_table, app, current_dir):
+async def run(migration_table, app, current_dir, event_loop=None):
     """Start migrate data
 
     - Dry run: Run without executing tasks (for code review ...)
@@ -272,6 +273,12 @@ async def run(migration_table, app, current_dir):
     -- Expected: 2.0.1 2.0.1a 2.0.1b 2.0.2
     SELECT * FROM _migrated_changes WHERE version > '2.0.1a'
     -- Expected: 2.0.1a 2.0.1b 2.0.2
+
+    :param migration_table:
+    :param app:
+    :param current_dir:
+    :param event_loop:
+    :return:
     """
     import argparse
     parser = argparse.ArgumentParser(description='Data migration tool', add_help=False)
