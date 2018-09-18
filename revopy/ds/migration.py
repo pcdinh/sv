@@ -1,7 +1,6 @@
 
 import os
 from datetime import datetime
-from . import postgresql, is_null
 import inspect
 import logging
 from importlib.machinery import SourceFileLoader
@@ -76,7 +75,7 @@ async def migrate(table_name, app, base_path, env, current_version,
                         logger.info('TODO: Scan changes from beginning to %s', current_version)
                         q = 'SELECT COUNT(1) AS cnt FROM ' + table_name + 'WHERE version <= ' + str(current_version)
                         operations = await connection.fetchval(q)
-                        if is_null(operations):
+                        if operations is None:
                             operations = 0
                         logger.info('CHECK: Migrated operation count: %s', operations)
                     else:
@@ -92,7 +91,7 @@ async def migrate(table_name, app, base_path, env, current_version,
                 q = 'SELECT COUNT(1) AS cnt FROM ' + table_name + \
                     'WHERE version >= ' + str(migrate_from) + ' AND version <= ' + str(current_version)
                 operations = await connection.fetch_value(q)
-                if is_null(operations):
+                if operations is None:
                     operations = 0
                 logger.info('CHECK: Migrated operation count: %s', operations)
                 logger.info('TODO: Scan changes from %s to %s', migrate_from, current_version)
