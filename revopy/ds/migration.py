@@ -11,13 +11,13 @@ logger = logging.getLogger("revopy.migrator")
 async def migrate(table_name, app, base_path, env, current_version,
                   migrate_from=None, migration_dir=None, dry_run=False, verbose=False, event_loop=None):
     """Run migration scripts
-    :param table_name:
-    :param app:
-    :param base_path:
-    :param env: The environment name: dev1, dev2 ...
-    :param current_version: The current version. The data migration will always check
+    :param str table_name:
+    :param Vibora app:
+    :param str base_path:
+    :param str env: The environment name: dev1, dev2 ...
+    :param str current_version: The current version. The data migration will always check
            the current version's migration tasks against the ones stored in the _migrated_changes table
-    :param migrate_from: Check migrated versions to ensure that nothing is missed
+    :param str migrate_from: Check migrated versions to ensure that nothing is missed
            E.x: We are working on 2.2.1. On prod server, we deploy 2.1.2.
            The versions that have not been deployed can be:
            + 2.1.3
@@ -36,7 +36,7 @@ async def migrate(table_name, app, base_path, env, current_version,
     """
     from revopy import initialize_app
     await initialize_app(
-        app, base_path, "dev1", 'apps/config/settings.py', 'apps/config/settings_{}.py', event_loop=event_loop
+        app, base_path, env, 'apps/config/settings.py', 'apps/config/settings_{}.py', event_loop=event_loop
     )
     if migration_dir is None:
         migration_dir = os.path.join(base_path, 'migration')

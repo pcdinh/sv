@@ -188,7 +188,7 @@ def generate_native_update_query(table: str, row: Dict, where_clause: Dict) -> T
     return "UPDATE %s SET %s" % (table, ','.join(field_names), ','.join(placeholders)), params
 
 
-def _generate_where_clause(condition: Dict, start_counter=1) -> Tuple[str, List]:
+def _generate_where_clause(condition: Dict, start_counter: int=1) -> Tuple[str, List]:
     """
 
     :param dict condition:
@@ -289,9 +289,26 @@ class JoinedTable:
     RIGHT_JOIN = 3
 
     def __init__(self, left_table, right_table, left_table_pk, right_table_fk, join_type=1):
+        """Create an instance of JoinedTable
+
+        :param left_table:
+        :param right_table:
+        :param left_table_pk:
+        :param right_table_fk:
+        :param join_type:
+        """
         self.steps = [(left_table, right_table, left_table_pk, right_table_fk, join_type)]
 
     def combine(self, left_table, right_table, left_table_pk, right_table_fk, join_type=1):
+        """
+
+        :param left_table:
+        :param right_table:
+        :param left_table_pk:
+        :param right_table_fk:
+        :param join_type:
+        :return:
+        """
         self.steps.append((left_table, right_table, left_table_pk, right_table_fk, join_type))
         return self
 
@@ -301,11 +318,11 @@ class JoinedTable:
         Return SQL phrase:
             INNER JOIN right_table
             ON left_table.left_table_pk = right_table.right_table_fk
-        :param left_table:
-        :param right_table:
-        :param left_table_pk:
-        :param right_table_fk:
-        :param join_sql:
+        :param str left_table:
+        :param str right_table:
+        :param str left_table_pk:
+        :param str right_table_fk:
+        :param str join_sql:
         :return:
         """
         return "%s %s ON %s.%s = %s.%s" % (
@@ -432,7 +449,7 @@ def generate_select(table: Union[str, JoinedTable], columns: Tuple[str], where: 
     return " ".join(query)
 
 
-def quote_fields(fields: Dict, start_counter=1) -> Tuple[List, List, List, int]:
+def quote_fields(fields: Dict, start_counter: int=1) -> Tuple[List, List, List, int]:
     """Given a mapping between field names and their values, return a tuple of field names, list of $n placeholders
     and list of field values
 
