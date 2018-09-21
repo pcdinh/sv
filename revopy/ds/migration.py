@@ -304,5 +304,6 @@ async def run(migration_table, app, current_dir, event_loop=None):
         migrate_from=cmd_args.migrate_from,
         dry_run=cmd_args.dry_run,
         migration_dir=cmd_args.path,
-        verbose=cmd_args.verbose
+        verbose=cmd_args.verbose,
+        event_loop=event_loop
     )
