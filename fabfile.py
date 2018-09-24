@@ -138,7 +138,7 @@ def deploy(context):
         HostName 192.168.1.113
         Port 22
         User pcdinh
-        IdentityFile ~/.ssh/FileString_Stg.pem
+        IdentityFile ~/.ssh/my_key.pem
     :param Context context:
     :return:
     """
@@ -180,7 +180,7 @@ def deploy2(context, host_name):
         HostName 192.168.1.113
         Port 22
         User pcdinh
-        IdentityFile ~/.ssh/FileString_Stg.pem
+        IdentityFile ~/.ssh/mykey.pem
     :param context:
     :param host_name:
     :return:
