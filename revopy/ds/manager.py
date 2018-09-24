@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from revopy.ds.postgresql import SessionManager
+from revopy.ds.postgresql import ConnectionManager
 from asyncpg import exceptions
 
 logger = logging.getLogger("revopy.ds")
@@ -10,24 +10,24 @@ logger = logging.getLogger("revopy.ds")
 class supervise:
     """
     .. code:
-        session_manager = get_session_manager(request)
+        session_manager = get_connection_manager(request)
         with supervise(session_manager, transactional=True) as connection:
             connection.update()
             connection.insert()
 
-        session_manager = get_session_manager(request)
+        session_manager = get_connection_manager(request)
         with supervise(session_manager, transactional=True,
                        isolation='read_committed', readonly=False, deferrable=False) as connection:
             connection.update()
             connection.insert()
 
-        session_manager = get_session_manager(request)
+        session_manager = get_connection_manager(request)
         with supervise(session_manager, transactional=False) as connection:
             connection.fetch_one()
             connection.fetch_all()
     """
 
-    def __init__(self, session: SessionManager,
+    def __init__(self, session: ConnectionManager,
                  transactional: bool = False, isolation: str = 'read_committed',
                  readonly: bool = False, deferrable: bool = False):
         self.session = session

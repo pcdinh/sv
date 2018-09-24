@@ -6,9 +6,9 @@ from vibora import Request, Response
 
 from start_app import app
 import revopy
-from revopy.ds.postgresql import SessionManager
+from revopy.ds.postgresql import ConnectionManager
 from revopy.helpers.debug_utils import get_exception_details
-from revopy import Config, get_session_manager
+from revopy import Config, get_connection_manager
 from revopy.ds.manager import supervise
 from revopy.helpers.response_utils import JsonResponse, WebResponse
 from revopy.ds import is_null, Placeholder
@@ -44,7 +44,7 @@ async def test_connection(request: Request):
         # Pick the default database pool.
         default_pool = request.app.pools.get()
         # Take a connection from the default pool.
-        async with default_pool.acquire() as connection:  # :type: asyncpg.connection.Connection
+        async with default_pool.acquire() as connection:  # :type: asyncpg.connection.ConnectionManager
             # Open a transaction.
             async with connection.transaction():
                 # Run the query
@@ -62,7 +62,7 @@ async def test_connection(request: Request):
         # Pick the default database pool.
         default_pool = request.app.pools.get()
         # Take a connection from the pool.
-        async with default_pool.acquire() as connection:  # :type: asyncpg.connection.Connection
+        async with default_pool.acquire() as connection:  # :type: asyncpg.connection.ConnectionManager
             # Open a transaction.
             async with connection.transaction():
                 # Run the query
@@ -71,15 +71,27 @@ async def test_connection(request: Request):
                        VALUES($1, $2, $3, $4, $5, $6, $7)''',
                     1, "Lionen", "Messi", 1, 1, [50, 70], datetime.datetime.utcnow()
                 )
+                # Expected: Record
                 result_01 = await connection.fetchrow('SELECT user_id, first_name FROM users')
-                result_02 = await connection.fetchrow('SELECT user_id, first_name FROM users WHERE user_id = 10')
-                result_03 = await connection.fetch('SELECT user_id, first_name FROM users WHERE user_id = 10')
+                # Expected: Record
+                result_02 = await connection.fetchrow('SELECT user_id, first_name FROM users WHERE user_id = 1')
+                # Expected: None
+                result_03 = await connection.fetchrow('SELECT user_id, first_name FROM users WHERE user_id = 0')
+                # Expected: []
+                result_04 = await connection.fetch('SELECT user_id, first_name FROM users WHERE user_id = 10')
+                # Expected: None
+                result_05 = await connection.fetchval('SELECT user_id FROM users WHERE user_id = 10')
                 await connection.execute('''DELETE FROM users WHERE user_id = $1''', 1)
-                config = request.app.components.get(Config)
                 return WebResponse(
-                    'Result {}. Keys: {}, Values: {}, Empty: {}, DEBUG: {}'.format(result_01, result_01.keys(),
-                                                                                   result_01.values(), result_03,
-                                                                                   config.DEBUG))
+                    "fetchrow() 1: {}. \n"
+                    "fetchrow() 1 keys: {}. values: {}. \n"
+                    "fetchrow() 2: {}. \n"
+                    "fetchrow() 3: {}. \n"
+                    "fetch() empty: {}. \n"
+                    "fetchval() empty: {}. \n"
+                        .format(result_01, result_01.keys(), result_01.values(),
+                                result_02, result_03, result_04, result_05)
+                )
     except Exception as error:
         return WebResponse(str(error), status_code=500)
 
@@ -91,10 +103,9 @@ async def test_connection(request: Request):
     try:
         import datetime
         # Pick a session manager.
-        session_manager: revopy.ds.postgresql.SessionManager = get_session_manager(request)
-        connection: revopy.ds.postgresql.SessionManager = None
-        async with supervise(session_manager) as connection:
-            ''':type : revopy.ds.postgresql.SessionManager'''
+        connection_manager: revopy.ds.postgresql.ConnectionManager = get_connection_manager(request)
+        async with supervise(connection_manager) as connection:
+            ''':type : revopy.ds.postgresql.ConnectionManager'''
             await connection.execute(
                 "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
                  VALUES(%(user_id)s, %(first_name)s, %(last_name)s, %(source)s, %(status)s, %(created_time)s)",
@@ -572,10 +583,9 @@ async def test_join(request: Request):
     try:
         import datetime
         # Pick a session manager.
-        session_manager: revopy.ds.postgresql.SessionManager = get_session_manager(request)
-        connection: revopy.ds.postgresql.SessionManager = None
-        async with supervise(session_manager) as connection:
-            ''':type : revopy.ds.postgresql.SessionManager'''
+        connection_manager: revopy.ds.postgresql.ConnectionManager = get_connection_manager(request)
+        async with supervise(connection_manager) as connection:
+            ''':type : revopy.ds.postgresql.ConnectionManager'''
             await connection.execute(
                 "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
                  VALUES(%(user_id)s, %(first_name)s, %(last_name)s, %(source)s, %(status)s, %(created_time)s)",

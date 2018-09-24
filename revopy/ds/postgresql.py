@@ -592,13 +592,13 @@ class Match:
         return self.to_sql()
 
 
-class SessionManager:
-    """Provides manageability for a database session"""
+class ConnectionManager:
+    """Provides manageability for a database connection from a pool"""
 
     def __init__(self, pg_pool: 'asyncio.Future[asyncpg.pool.Pool]', timeout=None):
-        """Create an instance of SessionManager
+        """Create an instance of Connection
 
-        :rtype: SessionManager
+        :rtype: ConnectionManager
         :param asyncio.Future pg_pool:
         :param int timeout:
         """
@@ -617,7 +617,7 @@ class SessionManager:
         :param str isolation:
         :param bool readonly:
         :param bool deferrable:
-        :return an asyncpg's Connection
+        :return an asyncpg's ConnectionManager
         :rtype: asyncpg.connection.Connection
         """
         if self.connection:
