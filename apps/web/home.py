@@ -9,7 +9,7 @@ import revopy
 from revopy.ds.postgresql import SessionManager
 from revopy.helpers.debug_utils import get_exception_details
 from revopy import Config, get_session_manager
-from revopy.ds.manager import managed
+from revopy.ds.manager import supervise
 from revopy.helpers.response_utils import JsonResponse, WebResponse
 from revopy.ds import is_null, Placeholder
 
@@ -93,7 +93,7 @@ async def test_connection(request: Request):
         # Pick a session manager.
         session_manager: revopy.ds.postgresql.SessionManager = get_session_manager(request)
         connection: revopy.ds.postgresql.SessionManager = None
-        async with managed(session_manager) as connection:
+        async with supervise(session_manager) as connection:
             ''':type : revopy.ds.postgresql.SessionManager'''
             await connection.execute(
                 "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
@@ -574,7 +574,7 @@ async def test_join(request: Request):
         # Pick a session manager.
         session_manager: revopy.ds.postgresql.SessionManager = get_session_manager(request)
         connection: revopy.ds.postgresql.SessionManager = None
-        async with managed(session_manager) as connection:
+        async with supervise(session_manager) as connection:
             ''':type : revopy.ds.postgresql.SessionManager'''
             await connection.execute(
                 "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
