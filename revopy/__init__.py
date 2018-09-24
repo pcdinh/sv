@@ -182,6 +182,7 @@ async def initialize_app(app: Vibora,
     app.components.add(config)
     # Initialize database connection pools
     if start_db is not None:
+        from revopy.ds.postgresql import ConnectionManager
         # Ensure that "default, cache,   secret_data" is transformed into ["default", "cache", "secret_data"]
         database_names = [name.strip() for name in start_db.split(",")]
         pools = ConnectionManagerRegistry()
@@ -197,6 +198,5 @@ async def initialize_app(app: Vibora,
                 max_size=db_config["pool"]["max"],
                 loop=event_loop or app.loop
             )
-            from revopy.ds.postgresql import ConnectionManager
             pools[name] = ConnectionManager(pg_pool)
         app.db: ConnectionManagerRegistry = pools
