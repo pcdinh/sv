@@ -42,7 +42,7 @@ async def home(request: Request):
 async def test_connection(request: Request):
     try:
         # Pick the default database pool.
-        default_pool = request.app.pools.get()
+        default_pool = request.app.db.get()
         # Take a connection from the default pool.
         async with default_pool.acquire() as connection:  # :type: asyncpg.connection.ConnectionManager
             # Open a transaction.
@@ -60,7 +60,7 @@ async def test_connection(request: Request):
     try:
         import datetime
         # Pick the default database pool.
-        default_pool = request.app.pools.get()
+        default_pool = request.app.db.get()
         # Take a connection from the pool.
         async with default_pool.acquire() as connection:  # :type: asyncpg.connection.ConnectionManager
             # Open a transaction.

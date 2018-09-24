@@ -78,20 +78,20 @@ class Config:
 
 
 class ConnectionManagerRegistry:
-    """Allows to store many database connection session manager from different databases
-    """
+    """A store of many database connection managers for different databases"""
     def __init__(self):
         self.pools = {}
 
     def __getitem__(self, name):
-        """Get a connection session manager by name
+        """Get a connection manager by name
         :param name:
         :return:
+        :rtype: revopy.ds.postgresql.ConnectionManager
         """
         return self.pools.get(name, None)
 
     def __setitem__(self, name, value):
-        """Add a connection session manager
+        """Add a connection manager
         :param str name:
         :param asyncio.Future value:
         :return:
@@ -109,17 +109,30 @@ class ConnectionManagerRegistry:
         """Get a connection pool by name
         :param name:
         :return:
+        :rtype: asyncio.Future[asyncpg.pool.Pool]
         """
         return self.pools[name].pool
 
-    async def initialize(self, app, name):
-        """Initialize a database connection session manager if not exists
+    async def initialize(self, app, name, db_config):
+        """Initialize a database connection manager if not exists
         :param app:
-        :param name:
+        :param str name:
+        :param dict db_config:
+               Database connection configuration. E.x:
+               {
+                 "dsn": "<string>",
+                 "pool": {
+                   "min": <int>,
+                   "max": <int>,
+                   "max_inactive_connection_lifetime": <int>
+                 }
+               }
         :return:
+        :rtype: revopy.ds.postgresql.ConnectionManager
         """
         if name not in self.pools:
-            db_config = app.components.get(Config).DATABASE.get(name, None)
+            if not db_config:
+                db_config = app.components.get(Config).DATABASE.get(name, None)
             pg_pool: asyncio.Future = await asyncpg.create_pool(
                 db_config["dsn"],
                 max_inactive_connection_lifetime=db_config["pool"]["max_inactive_connection_lifetime"],
@@ -128,7 +141,8 @@ class ConnectionManagerRegistry:
                 loop=app.loop
             )
             from revopy.ds.postgresql import ConnectionManager
-            app.pools[name] = ConnectionManager(pg_pool)
+            self.pools[name] = ConnectionManager(pg_pool)
+        return self.pools[name]
 
 
 def get_connection_manager(request, pool_name="default"):
@@ -137,7 +151,7 @@ def get_connection_manager(request, pool_name="default"):
     :param pool_name:
     :return:
     """
-    return request.app.pools[pool_name]
+    return request.app.db[pool_name]
 
 
 async def initialize_app(app: Vibora,
@@ -185,4 +199,4 @@ async def initialize_app(app: Vibora,
             )
             from revopy.ds.postgresql import ConnectionManager
             pools[name] = ConnectionManager(pg_pool)
-        app.pools: ConnectionManagerRegistry = pools
+        app.db: ConnectionManagerRegistry = pools
