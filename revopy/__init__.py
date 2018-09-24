@@ -105,7 +105,7 @@ class ConnectionManagerRegistry:
     def __contains__(self, name):
         return name in self.pools
 
-    def get(self, name="default"):
+    def pool(self, name="default"):
         """Get a connection pool by name
         :param name:
         :return:

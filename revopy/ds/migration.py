@@ -9,7 +9,8 @@ logger = logging.getLogger("revopy.migrator")
 
 
 async def migrate(table_name, app, base_path, env, current_version,
-                  migrate_from=None, migration_dir=None, dry_run=False, verbose=False, event_loop=None):
+                  migrate_from=None, migration_dir=None, dry_run=False, verbose=False,
+                  event_loop=None, db_index="default"):
     """Run migration scripts
     :param str table_name:
     :param Vibora app:
@@ -33,15 +34,17 @@ async def migrate(table_name, app, base_path, env, current_version,
     :param dry_run: Print all what will be executed, not executing them effectively
     :param verbose: Verbose mode
     :param event_loop:
+    :param str db_index:
     """
     from revopy import initialize_app
     await initialize_app(
-        app, base_path, env, 'apps/config/settings.py', 'apps/config/settings_{}.py', event_loop=event_loop
+        app, base_path, env, 'apps/config/settings.py', 'apps/config/settings_{}.py',
+        event_loop=event_loop, start_db=db_index
     )
     if migration_dir is None:
         migration_dir = os.path.join(base_path, 'migration')
 
-    async with app.pg.pool.acquire() as connection:
+    async with app.db.get().acquire() as connection:
         # See:
         # http://stackoverflow.com/questions/1150032/what-is-the-benefit-of-using-set-xact-abort-on-in-a-stored-procedure
         # In SQL Server, XACT_ABORT must be set ON

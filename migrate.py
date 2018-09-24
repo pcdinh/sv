@@ -12,10 +12,10 @@ if __name__ == '__main__':
     - Migrate from the latest migrated version (stored in db) to the current deployed version
     - Migrate from the specified version (user defined) to the current deployed version
 
-    python migrate.py -s dev1 -v
-    python migrate.py -s dev1 -f 2.0.0 -c 2.1.0 -d
+    python3 migrate.py -s dev1 -v
+    python3 migrate.py -s dev1 -f 2.0.0 -c 2.1.0 -d
     >> Namespace(current_version='2.1.0', dry_run=True, migrate_from='2.0.0', stage='dev1', verbose=False)
-    python migrate.py -s dev1 -f 2.0.0 -c 2.1.0
+    python3 migrate.py -s dev1 -f 2.0.0 -c 2.1.0
     >> Namespace(current_version='2.1.0', dry_run=False, migrate_from='2.0.0', stage='dev1', verbose=False)
     """
     import os
