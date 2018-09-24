@@ -10,17 +10,19 @@ logger = logging.getLogger("revopy.ds")
 class supervise:
     """
     .. code:
-        with supervise(request.app.pq, transactional=True) as connection:
+        session_manager = get_session_manager(request)
+        with supervise(session_manager, transactional=True) as connection:
             connection.update()
             connection.insert()
 
-        connection = request.app.pq
-        with supervise(connection, transactional=True, isolation='read_committed', readonly=False, deferrable=False):
+        session_manager = get_session_manager(request)
+        with supervise(session_manager, transactional=True,
+                       isolation='read_committed', readonly=False, deferrable=False) as connection:
             connection.update()
             connection.insert()
 
-        connection = request.app.pq
-        with supervise(connection, transactional=False):
+        session_manager = get_session_manager(request)
+        with supervise(session_manager, transactional=False) as connection:
             connection.fetch_one()
             connection.fetch_all()
     """
