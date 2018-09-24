@@ -90,7 +90,7 @@ class ConnectionManagerRegistry:
         """
         return self.pools.get(name, None)
 
-    def __setitem__(self, name, value):
+    def __setitem__(self, name: str, value: asyncio.Future):
         """Add a connection manager
         :param str name:
         :param asyncio.Future value:
@@ -105,8 +105,8 @@ class ConnectionManagerRegistry:
     def __contains__(self, name):
         return name in self.pools
 
-    def pool(self, name="default"):
-        """Get a connection pool by name
+    def pool(self, name="default") -> asyncio.Future:
+        """Get an asyncpg connection pool by name
         :param name:
         :return:
         :rtype: asyncio.Future[asyncpg.pool.Pool]
