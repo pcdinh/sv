@@ -156,7 +156,7 @@ def get_connection_manager(request, pool_name="default"):
 
 async def initialize_app(app: Vibora,
                          base_path: str,
-                         default_environ: str,
+                         environ_name: str,
                          default_settings_file: str,
                          environment_settings_file: str,
                          start_db="default", event_loop=None):
@@ -164,7 +164,7 @@ async def initialize_app(app: Vibora,
 
     :param Vibora app:
     :param str base_path:
-    :param str default_environ:
+    :param str environ_name:
     :param str default_settings_file:
     :param str environment_settings_file:
     :param str start_db:
@@ -174,7 +174,6 @@ async def initialize_app(app: Vibora,
     :return:
     """
     import logging
-    environ_name = os.environ.get("ENV_NAME", default_environ)
     # Registering the config instance
     config = Config(base_path)
     config.from_py_file(default_settings_file)
