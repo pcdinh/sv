@@ -68,8 +68,8 @@ async def test_connection(request: Request):
                 # Run the query
                 await connection.execute(
                     '''INSERT INTO users(user_id, first_name, last_name, source, status, weight, created_time) 
-                       VALUES($1, $2, $3, $4, $5, $6)''',
-                    1, "Lionen", "Messi", 1, 1, datetime.datetime.utcnow()
+                       VALUES($1, $2, $3, $4, $5, $6, $7)''',
+                    1, "Lionen", "Messi", 1, 1, [50, 70], datetime.datetime.utcnow()
                 )
                 result_01 = await connection.fetchrow('SELECT user_id, first_name FROM users')
                 result_02 = await connection.fetchrow('SELECT user_id, first_name FROM users WHERE user_id = 10')
