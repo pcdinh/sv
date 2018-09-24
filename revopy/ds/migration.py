@@ -42,7 +42,7 @@ async def migrate(table_name, app, base_path, env, current_version,
         event_loop=event_loop, start_db=db_index
     )
     if migration_dir is None:
-        migration_dir = os.path.join(base_path, 'migration')
+        migration_dir = os.path.join(base_path, 'apps', 'migrations')
 
     async with app.db.pool(db_index).acquire() as connection:
         # See:

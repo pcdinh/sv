@@ -6,7 +6,8 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 if __name__ == '__main__':
     """
-    This script is designed to migrate data
+    This script is designed to migrate data. 
+    It looks up Python files for database migration at {CURRENT_DIR}/apps/migrations
 
     - Dry run: Run without executing tasks (for code review ...)
     - Migrate from the latest migrated version (stored in db) to the current deployed version
