@@ -596,7 +596,7 @@ class ConnectionManager:
     """Provides manageability for a database connection from a pool"""
 
     def __init__(self, pg_pool: 'asyncio.Future[asyncpg.pool.Pool]', timeout=None):
-        """Create an instance of Connection
+        """Create an instance of ConnectionManager
 
         :rtype: ConnectionManager
         :param asyncio.Future pg_pool:
