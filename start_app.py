@@ -21,7 +21,7 @@ async def initialize_engine(current_app: Vibora):
     await initialize_app(
         current_app,
         os.path.dirname(os.path.realpath(__file__)),
-        "dev1",
+        os.environ.get("ENV_NAME", None) or "dev1",
         'apps/config/settings.py',
         'apps/config/settings_{}.py'
     )
