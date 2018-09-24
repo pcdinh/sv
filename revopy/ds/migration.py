@@ -44,7 +44,7 @@ async def migrate(table_name, app, base_path, env, current_version,
     if migration_dir is None:
         migration_dir = os.path.join(base_path, 'migration')
 
-    async with app.db.get().acquire() as connection:
+    async with app.db.pool(db_index).acquire() as connection:
         # See:
         # http://stackoverflow.com/questions/1150032/what-is-the-benefit-of-using-set-xact-abort-on-in-a-stored-procedure
         # In SQL Server, XACT_ABORT must be set ON
