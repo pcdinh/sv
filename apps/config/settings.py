@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
 
-# postgresql://{user}:{password}@{host}/{schema}
-POSTGRESQL_DSN = "postgresql://dbdev1:123456@localhost/sv1"
+# It is possible to configure many database servers here
+DATABASE = {
+    "default": {
+        # postgresql://{user}:{password}@{host}/{schema}
+        "dsn": "postgresql://dbdev1:123456@localhost/sv1",
+        "pool": {
+            "min": 1,
+            "max": 3,
+            "max_inactive_connection_lifetime": 60
+        }
+    }
+}
 
-POSTGRESQL_POOL = (1, 3, 60)  # min, max, max_inactive_connection_lifetime

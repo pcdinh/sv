@@ -8,7 +8,7 @@ from start_app import app
 import revopy
 from revopy.ds.postgresql import SessionManager
 from revopy.helpers.debug_utils import get_exception_details
-from revopy import Config
+from revopy import Config, get_session_manager
 from revopy.ds.manager import managed
 from revopy.helpers.response_utils import JsonResponse, WebResponse
 from revopy.ds import is_null, Placeholder
@@ -23,8 +23,8 @@ async def home(request: Request, config: Config):
     return JsonResponse(
         {
             'hello': 'world',
-            'config': config.POSTGRESQL_DSN,
-            'pg_pool': hasattr(request.app, "pg")
+            'config': config.DATABASE,
+            'pg_pool': hasattr(request.app, "pools")
         }
     )
 
@@ -41,9 +41,10 @@ async def home(request: Request):
 @app.route('/c')
 async def test_connection(request: Request):
     try:
-        # Take a connection from the pool.
-        ''':type : asyncpg.connection.Connection'''
-        async with request.app.pool.acquire() as connection:
+        # Pick the default database pool.
+        default_pool = request.app.pools.get()
+        # Take a connection from the default pool.
+        async with default_pool.acquire() as connection:  # :type: asyncpg.connection.Connection
             # Open a transaction.
             async with connection.transaction():
                 # Run the query
@@ -58,9 +59,10 @@ async def test_connection(request: Request):
 async def test_connection(request: Request):
     try:
         import datetime
+        # Pick the default database pool.
+        default_pool = request.app.pools.get()
         # Take a connection from the pool.
-        ''':type : asyncpg.connection.Connection'''
-        async with request.app.pg.pool.acquire() as connection:
+        async with default_pool.acquire() as connection:  # :type: asyncpg.connection.Connection
             # Open a transaction.
             async with connection.transaction():
                 # Run the query
@@ -88,8 +90,10 @@ async def test_connection(request: Request):
     import sys
     try:
         import datetime
+        # Pick a session manager.
+        session_manager: revopy.ds.postgresql.SessionManager = get_session_manager(request)
         connection: revopy.ds.postgresql.SessionManager = None
-        async with managed(request.app.pg) as connection:
+        async with managed(session_manager) as connection:
             ''':type : revopy.ds.postgresql.SessionManager'''
             await connection.execute(
                 "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \
@@ -567,8 +571,10 @@ async def test_join(request: Request):
     import sys
     try:
         import datetime
+        # Pick a session manager.
+        session_manager: revopy.ds.postgresql.SessionManager = get_session_manager(request)
         connection: revopy.ds.postgresql.SessionManager = None
-        async with managed(request.app.pg) as connection:
+        async with managed(session_manager) as connection:
             ''':type : revopy.ds.postgresql.SessionManager'''
             await connection.execute(
                 "INSERT INTO users(user_id, first_name, last_name, source, status, created_time) \

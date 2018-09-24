@@ -7,7 +7,7 @@ from asyncpg import exceptions
 logger = logging.getLogger("revopy.ds")
 
 
-class managed:
+class supervise:
     """
     .. code:
         with managed(request.app.pq, transactional=True) as connection:
