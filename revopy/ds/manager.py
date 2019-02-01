@@ -36,7 +36,7 @@ class supervise:
         self.readonly = readonly
         self.deferrable = deferrable
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> ConnectionManager:
         # Start a connection
         try:
             await self.session.start(
@@ -49,7 +49,7 @@ class supervise:
         # Start a transaction
         try:
             if self.transactional is True:
-                self.session.start_transaction()
+                await self.session.start_transaction()
         except BaseException as e:
             logger.exception("Error when starting a transaction")
             await self.session.close()
