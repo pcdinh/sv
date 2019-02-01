@@ -630,7 +630,7 @@ class ConnectionManager:
 
     async def start_transaction(self):
         """Start a transaction"""
-        self.transaction = await self.connection.transaction()
+        self.transaction = self.connection.transaction()
         await self.transaction.start()
 
     async def close(self, release: bool=True):
@@ -640,6 +640,12 @@ class ConnectionManager:
         """
         if release is True:
             await self.pool.release(self.connection)
+        self.connection = None
+        self.transaction = None
+
+    async def stop(self):
+        """Stop database pool and de-allocate resources"""
+        await self.pool.close()
         self.connection = None
         self.transaction = None
 
